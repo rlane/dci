@@ -3,7 +3,7 @@ require 'rubygems'
 require 'xapian'
 require 'common'
 
-DATA_FILENAME = "data"
+DATA_FILENAME = "data-h"
 INDEX_FILENAME = "index"
 
 $db = Xapian::WritableDatabase.new(INDEX_FILENAME, Xapian::DB_CREATE_OR_OVERWRITE)
@@ -24,12 +24,13 @@ def index tth, locations, texts, terms, size
 	$db.add_document doc
 end
 
-data = MarshalledGDBM.new DATA_FILENAME
-size = data.size
+data = MarshalledDB.new DATA_FILENAME
+n = data.size
 i = 0
 data.each do |tth,v|
 	#puts "indexing #{tth}"
 	i += 1
-	puts "indexed #{i}/#{size}" if (i % 1000) == 0
 	index tth, v[:locations], v[:texts], v[:terms], v[:size]
+	puts "indexed #{i}/#{n}" if (i % 1000) == 0
 end
+data.close

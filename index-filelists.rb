@@ -6,6 +6,7 @@ include LibXML
 
 FILELISTS_DIR = "filelists"
 DATA_FILENAME = "data"
+OPTIMIZE = false
 
 filelists = Dir.glob(FILELISTS_DIR + "/*")
 #filelists = %w(zzazzors).map { |x| FILELISTS_DIR + "/" + x + ".filelist.xml" }
@@ -37,23 +38,27 @@ def process_filelist xml, username
 	end
 end
 
-$index = MarshalledGDBM.new DATA_FILENAME
-$index.cachesize = 10000
-$index.fastmode = true
+begin
+	$index = MarshalledDB.new DATA_FILENAME
 
-i = 0
-n = filelists.length
-filelists.sort.each do |filelist|
-	i += 1
-	fail 'bad filename' unless filelist =~ /^#{FILELISTS_DIR}\/(.*).filelist.xml/
-	username = $1
-	File.open(filelist, "r") do |f|
-		puts "(#{i}/#{n}) processing #{filelist}"
-		xml = XML::Reader.io f
-		next if xml.nil?
-		process_filelist xml, username
+	i = 0
+	n = filelists.length
+	filelists.sort.each do |filelist|
+		i += 1
+		fail 'bad filename' unless filelist =~ /^#{FILELISTS_DIR}\/(.*).filelist.xml/
+		username = $1
+		File.open(filelist, "r") do |f|
+			puts "(#{i}/#{n}) processing #{filelist}"
+			xml = XML::Reader.io f
+			next if xml.nil?
+			process_filelist xml, username
+		end
 	end
-end
 
-puts "compacting..."
-$index.reorganize
+	if OPTIMIZE
+		puts "optimizing..."
+		$index.optimize
+	end
+ensure
+	$index.close if $index
+end
