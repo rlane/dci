@@ -9,7 +9,7 @@ DATA_FILENAME = "data"
 OPTIMIZE = false
 
 filelists = Dir.glob(FILELISTS_DIR + "/*")
-filelists = filelists[0...20]
+filelists = filelists.sort[0...20]
 #filelists = %w(zzazzors).map { |x| FILELISTS_DIR + "/" + x + ".filelist.xml" }
 
 def process_file tth, username, path, size
