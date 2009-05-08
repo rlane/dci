@@ -3,7 +3,7 @@ require 'rubygems'
 require 'xapian'
 require 'common'
 
-DATA_FILENAME = "data-h"
+DATA_FILENAME = "data.analyzed"
 INDEX_FILENAME = "index"
 
 $db = Xapian::WritableDatabase.new(INDEX_FILENAME, Xapian::DB_CREATE_OR_OVERWRITE)

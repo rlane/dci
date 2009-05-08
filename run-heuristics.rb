@@ -3,7 +3,7 @@ require 'rubygems'
 require 'common'
 
 IN_DATA_FILENAME = "data"
-OUT_DATA_FILENAME = "data-h"
+OUT_DATA_FILENAME = "data.analyzed"
 OPTIMIZE = false
 
 require 'heuristic-lib'
