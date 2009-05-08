@@ -8,8 +8,8 @@ FILELISTS_DIR = "filelists"
 DATA_FILENAME = "data"
 OPTIMIZE = false
 
-filelists = Dir.glob(FILELISTS_DIR + "/*")
-filelists = filelists.sort[0...20]
+filelists = Dir.glob(FILELISTS_DIR + "/*").sort
+#filelists = filelists[0...20]
 #filelists = %w(zzazzors).map { |x| FILELISTS_DIR + "/" + x + ".filelist.xml" }
 
 def process_file tth, username, path, size
@@ -41,7 +41,7 @@ begin
 
 	i = 0
 	n = filelists.length
-	filelists.sort.each do |filelist|
+	filelists.each do |filelist|
 		i += 1
 		fail 'bad filename' unless filelist =~ /^#{FILELISTS_DIR}\/(.*).filelist.xml/
 		username = $1

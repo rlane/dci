@@ -15,6 +15,10 @@ class HeuristicRunner
 		puts "term #{type}:#{term}" if $heuristic_verbose
 	end
 
+	def term? type, term
+		@terms.member? [type, term]
+	end
+
 	def text! text
 		@texts << text
 		puts "text #{text.inspect}" if $heuristic_verbose
