@@ -9,14 +9,12 @@ DATA_FILENAME = "data"
 OPTIMIZE = false
 
 filelists = Dir.glob(FILELISTS_DIR + "/*")
+filelists = filelists[0...20]
 #filelists = %w(zzazzors).map { |x| FILELISTS_DIR + "/" + x + ".filelist.xml" }
 
 def process_file tth, username, path, size
-	fs_path = path * '/'
-	text_path = path * ' '
-	x = $index[tth] || { :locations => [], :terms => [], :texts => [], :size => nil }
-	x[:locations] << [username, fs_path]
-	x[:texts] += [text_path]
+	x = $index[tth] || { :locations => [], :size => nil }
+	x[:locations] << [username, path * '/']
 	x[:size] = size
 	$index[tth] = x
 end

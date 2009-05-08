@@ -1,11 +1,12 @@
 $heuristic_verbose = false
 
 class HeuristicRunner
-	attr_reader :tth, :terms, :locations
+	attr_reader :tth, :terms, :texts, :locations
 
 	def initialize tth, v
 		@tth = tth
-		@terms = v[:terms]
+		@terms = v[:terms] ||= []
+		@texts = v[:texts] ||= []
 		@locations = v[:locations]
 	end
 

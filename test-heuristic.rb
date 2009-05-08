@@ -6,16 +6,9 @@ require 'heuristic-lib'
 require 'heuristics'
 
 $heuristic_verbose = true
-TEST = %w(extension type_from_extension)
+TEST = %w(extension type_from_extension text_from_path type_from_path)
 DATA = {
 	"6KJNPPDGUC6RKPIZA3T3JQFYPDMMHEA7BUEQZNQ" => {
-		:terms => [
-			[:extension, "jpg"]
-		],
-		:texts => [
-			"storage Music Damien Rice 9 AlbumArt_{68B7FFD0-80F1-4E97-8802-85EF1FE5A456}_Large.jpg",
-			"storage Music Damien Rice 9 Folder.jpg"
-		],
 		:locations => [
 			["Bob", "storage/Music/Damien Rice/9/AlbumArt_{68B7FFD0-80F1-4E97-8802-85EF1FE5A456}_Large.jpg"],
 			["Bob", "storage/Music/Damien Rice/9/Folder.jpg"]
@@ -32,7 +25,6 @@ def run_heuristics tth, v
 		runner.ie &b
 	end
 	v[:terms].uniq!
-	v[:texts].uniq!
 	pp v
 end
 
