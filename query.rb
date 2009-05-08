@@ -18,8 +18,8 @@ OptionParser.new do |opts|
 	opts.on("-l", "--num-locations NUM", Integer, "Limit locations returned per result to NUM") { |v| options[:num_locations] = v }
 end.parse!
 
-queryString = ARGV[0]
-(puts "You must specify a query"; exit 1) unless queryString
+(puts "You must specify a query"; exit 1) if ARGV.empty?
+queryString = ARGV * ' '
 
 $db = Xapian::Database.new(INDEX_FILENAME)
 enquire = Xapian::Enquire.new($db)
