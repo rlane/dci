@@ -5,6 +5,7 @@ require 'common'
 
 INDEX_FILENAME = "index"
 MAX_RESULTS = 10
+MAX_LOCATIONS = 5
 
 queryString = ARGV[0] || ""
 
@@ -35,7 +36,8 @@ puts "Results 1 - #{matchset.size} of #{matchset.matches_estimated}:"
 matchset.matches.each do |m|
 	data = Marshal.load(m.document.data)
   puts "#{m.rank + 1}: #{m.percent}% #{data[:tth]}"
-	data[:locations].each do |username,path|
+	data[:locations][0...MAX_LOCATIONS].each do |username,path|
 		puts "  #{username}:/#{path}"
 	end
+	puts "  + #{data[:locations].size - MAX_LOCATIONS} more" if data[:locations].size > MAX_LOCATIONS
 end
