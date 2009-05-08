@@ -22,7 +22,7 @@ end
 R = XML::Reader
 def process_filelist xml, username
 	path = []
-	while (xml.read == 1)
+	while xml.read
 		name, node_type = xml.name, xml.node_type
 		if name == 'File' && node_type == R::TYPE_ELEMENT
 			path.push xml['Name']

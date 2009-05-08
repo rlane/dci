@@ -31,6 +31,6 @@ data.each do |tth,v|
 	#puts "indexing #{tth}"
 	i += 1
 	index tth, v[:locations], v[:texts], v[:terms], v[:size]
-	puts "indexed #{i}/#{n}" if (i % 1000) == 0
+	puts "indexed #{i}/#{n}" if (i % 10000) == 0
 end
 data.close
