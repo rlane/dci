@@ -1,0 +1,5 @@
+*.swp
+blacklist
+data*
+filelist*
+index
