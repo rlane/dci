@@ -1,6 +1,9 @@
 #!/usr/bin/env ruby
 require 'socket'
 require 'thread'
+require 'asami/key_generator'
+require 'asami/hub_parser'
+require 'asami/client_parser'
 
 HUB_ADDRESS = 'localhost'
 HUB_PORT = 7314
@@ -65,28 +68,35 @@ class HubConnection < DCConnection
 
 	def run
 		while (l = read)
-			case l
-			when /^<(.+)> (.*)$/
-				log "chat from #{$1.inspect}: #{$2.inspect}"
-			when /^\$Hello (.*)$/
-				log "hello user #{$1.inspect}"
-				@users[$1] = true
-			when /^\$Quit (.*)$/
-				log "quit user #{$1.inspect}"
-				@users.delete $1
-			when /^\$MyINFO \$ALL ([^ ]*) (.*)$/
-				log "info user #{$1.inspect}: #{$2.inspect}"
-			when /^\$Search .*$/
-			when /^\$OpList .*/
-			when /^\$NickList (.*)/
+			m = HubParser.parse_message l
+			case m[:type]
+			when :chat
+				log "chat from #{m[:from].inspect}: #{m[:text].inspect}"
+			when :denide
+			when :getpass
+			when :badpass
+			when :lock
+			when :hubname
+			when :hello
+				@users[m[:who]] = true
+			when :myinfo
+				log "info user #{m[:nick].inspect}: #{m.inspect}"
+			when :privmsg
+			when :connect_to_me
+			when :nick_list
 				@users.clear
-				$1.split('$$').each { |x| @users[x] = true }
-			when /^\$HubName .*$/
-			when /^\$ConnectToMe ([^ ]+) (\d+\.\d+\.\d+\.\d+):(\d+)/
-				log "ConnectToMe from #{1.inspect} at ip #{$2.inspect} port #{$3.inspect}"
-			when ""
+				m[:nicks].each { |x| @users[x] = true }
+			when :passive_search_result
+			when :pasv_search
+			when :active_search
+			when :op_list
+			when :quit
+				@users.delete m[:who]
+			when :searchresult
+			when :revconnect
+			when :junk
 			else
-				raise "unhandled message: #{l.inspect}"
+				raise "unknown message type #{m[:type].inspect}"
 			end
 		end
 	end
@@ -95,8 +105,6 @@ end
 
 $hub = HubConnection.new HUB_ADDRESS, HUB_PORT
 
-#tag = "<++V:0.02,M:A,H:1/0/0,S:1>"
-#$hub.write "MyINFO $ALL #{tag} #{username}$ $%s%s$%s$%d$",
 
 Thread.new do
 	$hub.run
