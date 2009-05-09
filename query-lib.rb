@@ -4,7 +4,6 @@ require 'common'
 class DtellaIndexReader
 	def initialize filename
 		@db = Xapian::Database.new(filename)
-		@enquire = Xapian::Enquire.new(@db)
 		@qp = Xapian::QueryParser.new()
 		NORMAL_PREFIXES.each { |k,v| @qp.add_prefix k.to_s, v }
 		BOOLEAN_PREFIXES.each { |k,v| @qp.add_boolean_prefix k.to_s, v }
@@ -20,8 +19,9 @@ class DtellaIndexReader
 	end
 
 	def query q, offset, count
-		@enquire.query = q
-		matchset = @enquire.mset(offset, count)
+		enquire = Xapian::Enquire.new(@db)
+		enquire.query = q
+		matchset = enquire.mset(offset, count)
 		results = []
 		matchset.matches.each do |m|
 			result = Marshal.load(m.document.data)
