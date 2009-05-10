@@ -95,7 +95,7 @@ class DtellaBot
 			return
 		end
 		m = ms[0]
-		tx from, "Users: #{m[:locations].map{ |x,_| x}.uniq * ', '}"
+		tx from, "Users: #{m[:locations].map{ |x,_| ($hub.users.member?(x) ? '+' : '') + x}.uniq * ', '}"
 		encoded_docid = DtellaIndexReader.encode_docid m[:docid]
 		tx from, "Link: " + BASE_URL + "/=#{encoded_docid}"
 	end

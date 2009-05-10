@@ -131,15 +131,15 @@ class HttpServer < BaseHttpServer
 		ensure
 			srv.close
 		end
-		return unless s
+		return :timeout unless s
 		puts "client accepted"
 		client = ClientConnection.new "#{username}:#{filename}", s
 	
 		client.adcget filename, offset
 		m = client.readmsg
 		p m
-		return unless m[:type] == :adcsnd
-		return s, m[:length]
+		return :noslots unless m[:type] == :adcsnd
+		return :ok, s, m[:length]
 	end
 
 	def transfer_chunk instream, outstream, len
@@ -178,8 +178,9 @@ class HttpServer < BaseHttpServer
 		p username
 		return write_status out, 404, 'all peers offline' unless username
 
-		s, len = start_transfer username, filename, offset
-		return write_status out, 404, 'remote peer failed to connect' unless s
+		status, s, len = start_transfer username, filename, offset
+		return write_status out, 404, 'peer failed to connect' if status == :timeout
+		return write_status out, 404, 'peer has no slots available' if status == :noslots
 
 		begin
 			delay = 1
@@ -191,9 +192,9 @@ class HttpServer < BaseHttpServer
 				puts "transfer completed"
 			else
 				puts "transfer aborted by peer at (#{count}/#{len})"
-				sleep delay
-				puts "recursing!"
-				stream out, filename, usernames, offset+count, delay*2
+				#sleep delay
+				#puts "recursing!"
+				#stream out, filename, usernames, offset+count, delay*2
 			end
 		rescue => e
 			puts "transfer failed: #{e.class} #{e.message}"
