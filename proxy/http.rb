@@ -107,9 +107,24 @@ class HttpServer < BaseHttpServer
 			handle_filelist client, username
 		when '/users'
 			handle_users client
+		when /^\/=([\w\d\/\+]+)$/
+			handle_stream client, $1
 		else
 			client.write(Mongrel::Const::ERROR_404_RESPONSE)
 		end
+	end
+
+	def handle_stream out, encoded_docid
+		docid = DtellaIndexReader.decode_docid encoded_docid
+		data = $index.load docid
+		return out.write(Mongrel::Const::ERROR_404_RESPONSE) unless data
+
+		puts "streaming #{encoded_docid} = #{docid} = #{data[:tth]}"
+
+		write_status out, 200, 'OK'
+		write_headers out, 'content-type' => 'application/octet-stream'
+		write_separator out
+		out.write "foo!"
 	end
 
 	def handle_file out, username, tth

@@ -2,6 +2,12 @@ require 'xapian'
 require 'common'
 
 class DtellaIndexReader
+	QP = Xapian::QueryParser
+	QUERY_PARSER_FLAGS = 
+	 QP::FLAG_PHRASE |
+	 QP::FLAG_BOOLEAN |
+	 QP::FLAG_LOVEHATE |
+	 QP::FLAG_WILDCARD
 	def initialize filename
 		@db = Xapian::Database.new(filename)
 		@qp = Xapian::QueryParser.new()
@@ -14,8 +20,21 @@ class DtellaIndexReader
 		@qp.default_op = Xapian::Query::OP_AND
 	end
 
+	def self.encode_docid x
+		[[x].pack('N')].pack('m')[0...-3] rescue nil
+	end
+
+	def self.decode_docid s
+		(s + "==\n").unpack('m')[0].unpack('N')[0] rescue nil
+	end
+
+	def load docid
+		doc = @db.document(docid) rescue (return nil)
+		Marshal.load(doc.data)
+	end
+
 	def parse_query query_string
-		@qp.parse_query(query_string, Xapian::QueryParser::FLAG_PHRASE|Xapian::QueryParser::FLAG_BOOLEAN|Xapian::QueryParser::FLAG_LOVEHATE, PREFIXES[:text])
+		@qp.parse_query(query_string, QUERY_PARSER_FLAGS, PREFIXES[:text])
 	end
 
 	def query q, offset, count
