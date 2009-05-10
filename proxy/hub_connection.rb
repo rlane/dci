@@ -5,6 +5,8 @@ require 'proxy/base_connection'
 module DCProxy
 
 class HubConnection < BaseConnection
+	attr_reader :users
+
 	def initialize name, address, port, self_address, self_port
 		@address = address
 		@port = port
@@ -63,8 +65,8 @@ class HubConnection < BaseConnection
 		end
 	end
 
-	def connect_to_me nick
-		write "$ConnectToMe #{nick} #{@self_address}:#{@self_port}"
+	def connect_to_me nick, self_port
+		write "$ConnectToMe #{nick} #{@self_address}:#{self_port}"
 	end
 
 end

@@ -1,9 +1,11 @@
 #!/usr/bin/env ruby
+require 'rubygems'
 require 'thread'
 require 'irb'
 
 require 'proxy/hub_connection'
 require 'proxy/client_connection'
+require 'proxy/http'
 
 include DCProxy
 
@@ -11,6 +13,7 @@ HUB_ADDRESS = 'localhost'
 HUB_PORT = 7314
 SELF_ADDRESS = '128.237.157.88'
 SELF_PORT = 9020
+HTTP_PORT = 8314
 
 $hub = HubConnection.new 'hub', HUB_ADDRESS, HUB_PORT, SELF_ADDRESS, SELF_PORT
 
@@ -18,6 +21,9 @@ Thread.new do
 	$hub.run
 	$stderr.puts "hub thread terminated"
 end
+
+$http = DCProxy::HttpServer.new("0.0.0.0", HTTP_PORT)
+$http.run
 
 IRB.setup nil
 irb = IRB::Irb.new(IRB::WorkSpace.new($hub))

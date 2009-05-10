@@ -16,6 +16,7 @@ class BaseConnection
 		d = "#{msg}|"
 		@s.write d
 		@logfile.puts "> #{d.inspect}"
+		@logfile.flush
 	end
 
 	def read
@@ -23,6 +24,7 @@ class BaseConnection
 		return unless msg
 		msg.chomp! '|'
 		@logfile.puts "< #{msg.inspect}"
+		@logfile.flush
 		msg
 	end
 
@@ -33,10 +35,11 @@ class BaseConnection
 
 	def log msg
 		@logfile.puts "! #{msg}"
+		@logfile.flush
 	end
 
 	def disconnect
-		@s.close!
+		@s.close
 	end
 end
 

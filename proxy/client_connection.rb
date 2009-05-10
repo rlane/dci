@@ -30,20 +30,18 @@ class ClientConnection < BaseConnection
 		write "$ADCGET file #{filename} #{offset} #{length}"
 	end
 
-	def download filename
+	def download filename, io
 		adcget filename
 		m = readmsg
 		p m
 		raise 'error' unless m[:type] == :adcsnd
 		count = 0
-		f = File.open("out", "w")
 		while d = s.readpartial(BUFFER_SIZE)
 			count += d.size
 			puts "read #{d.size} (#{count}/#{m[:length]})"
-			f.write d
+			io.write d
 			break if count >= m[:length]
 		end
-		f.close
 	end
 
 	def readmsg
