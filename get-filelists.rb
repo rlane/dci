@@ -2,6 +2,7 @@
 require 'rubygems'
 require 'rexml/document'
 require 'net/http'
+require 'cgi'
 include REXML
 
 SERVER_ADDRESS = "localhost"
@@ -30,7 +31,7 @@ else
 end
 
 usernames.each do |username|
-	filename = FILELIST_DIR + "/#{username}.filelist.xml"
+	filename = FILELIST_DIR + "/#{username.gsub '/', '_'}.filelist.xml"
 	next if File.exists? filename
 	next if BLACKLIST.member? username
 	next if username == ''
@@ -38,7 +39,7 @@ usernames.each do |username|
 	next if username.index('*') == 0
 	puts "downloading filelist from #{username}"
 	begin
-		data = get_raw(BASE_URL + "/filelist?username=#{username}")
+		data = get_raw(BASE_URL + "/filelist?username=#{CGI.escape username}")
 		fail 'empty file' if data.empty?
 		File.open(filename, "w") { |f| f.puts data }
 	rescue Exception => e
