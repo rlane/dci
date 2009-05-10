@@ -8,10 +8,11 @@ require 'set'
 require 'common'
 require 'query-lib'
 
-username = "dtella@club.cc.cmu.edu/#{`hostname`}"
+hostname = "knuthium.club.cc.cmu.edu"
+username = "dtella@club.cc.cmu.edu/#{hostname}"
 password = 'loo7Pho3'
 
-SERVER_ADDRESS = "localhost"
+SERVER_ADDRESS = hostname
 SERVER_PORT = 8314
 BASE_URL = "http://#{SERVER_ADDRESS}:#{SERVER_PORT}"
 

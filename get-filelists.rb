@@ -26,14 +26,14 @@ usernames = []
 users.elements.each('users/user/username') { |e| usernames << e.text }
 
 usernames.each do |username|
-	filename = "#{username}.filelist.xml"
+	filename = FILELIST_DIR + "/#{username}.filelist.xml"
 	next if File.exists? filename
 	next if BLACKLIST.member? username
 	puts "downloading filelist from #{username}"
 	begin
 		data = get_raw(BASE_URL + "/filelist?username=#{username}")
 		fail 'empty file' if data.empty?
-		File.open(FILELIST_DIR + "/" + filename, "w") { |f| f.puts data }
+		File.open(filename, "w") { |f| f.puts data }
 	rescue Exception => e
 		puts "download failed: #{e.message}"
 		BLACKLIST << username
