@@ -111,20 +111,28 @@ class HttpServer < BaseHttpServer
 		end
 	end
 
-	def start_transfer username, tth, offset=0, timeout=10
-		#port = 18000 + rand(1000)
-		port = 9020
-		puts "downloading #{username}:#{tth} at #{port}"
-		srv = TCPServer.new port
+	def start_transfer username, filename, offset=0, timeout=10
+		srv = nil
+		while !srv
+			#port = 18000 + rand(1000)
+			port = 9020
+			begin
+				srv = TCPServer.new port
+			rescue => e
+				puts "exception creating client port: #{e.message}"
+				sleep 1
+			end
+		end
+		puts "downloading #{username}:#{filename} at #{port}"
 		$hub.connect_to_me username, port
 		puts "accepting client connection..."
 		s = (Timeout.timeout(timeout) { srv.accept }) rescue nil
 		srv.close
 		return unless s
 		puts "client accepted"
-		client = ClientConnection.new "#{username}:#{tth}", s
+		client = ClientConnection.new "#{username}:#{filename}", s
 	
-		client.adcget "TTH/#{tth}", offset
+		client.adcget filename, offset
 		m = client.readmsg
 		p m
 		return unless m[:type] == :adcsnd
@@ -149,7 +157,7 @@ class HttpServer < BaseHttpServer
 		tth = data[:tth]
 		usernames = data[:locations].map{ |x,_| x }.uniq
 		puts "streaming #{docid} = #{tth} from #{usernames * ','}"
-		stream out, tth, usernames
+		stream out, "TTH/#{tth}", usernames
 	end
 	
 	def handle_stream_tth out, tth
@@ -157,17 +165,17 @@ class HttpServer < BaseHttpServer
 		return write_status out, 404, 'bad tth' unless data
 		usernames = data[:locations].map{ |x,_| x }.uniq
 		puts "streaming #{tth} from #{usernames * ','}"
-		stream out, tth, usernames
+		stream out, "TTH/#{tth}", usernames
 	end
 
-	def stream out, tth, usernames, offset=0, delay=1
+	def stream out, filename, usernames, offset=0, delay=1
 		online = usernames.select { |x| $hub.users.member? x }
 		p online
 		username = online.shuffle.first
 		p username
 		return write_status out, 404, 'all peers offline' unless username
 
-		s, len = start_transfer username, tth, offset
+		s, len = start_transfer username, filename, offset
 		return write_status out, 404, 'remote peer failed to connect' unless s
 
 		begin
@@ -182,7 +190,7 @@ class HttpServer < BaseHttpServer
 				puts "transfer aborted by peer at (#{count}/#{len})"
 				sleep delay
 				puts "recursing!"
-				stream out, tth, usernames, offset+count, delay*2
+				stream out, filename, usernames, offset+count, delay*2
 			end
 		rescue => e
 			puts "transfer failed: #{e.class} #{e.message}"
@@ -192,10 +200,7 @@ class HttpServer < BaseHttpServer
 	end
 
 	def handle_filelist out, username
-		write_status out, 200, 'OK'
-		write_headers out, 'content-type' => 'text/plain'
-		write_separator out
-		out.write 'filelist goes here'
+		stream out, 'files.xml', [username]
 	end
 
 	def handle_users out

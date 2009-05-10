@@ -7,7 +7,8 @@ module ClientParser
   @@key=Regexp.new('^Key (.*)$')
   @@direction=Regexp.new('^Direction (Download|Upload) (\d+)$')
   @@get=Regexp.new('^Get (.*)\$(\d+)$')
-	@@adcsnd=Regexp.new('^ADCSND file TTH/([\w\d]+) (\d+) (\d+)$')
+	@@adcsnd_tth=Regexp.new('^ADCSND file TTH/([\w\d]+) (\d+) (\d+)$')
+	@@adcsnd_filelist=Regexp.new('^ADCSND file (files.*) (\d+) (\d+)$')
   @@send=Regexp.new('^Send$')
   @@filelength=Regexp.new('^FileLength (.*?)$')
   @@getlistlen=Regexp.new('^GetListLen$')
@@ -53,7 +54,12 @@ module ClientParser
        :offset => $2.to_i - 1}
     when @@send
       {:type => :send}
-    when @@adcsnd
+    when @@adcsnd_tth
+      {:type => :adcsnd,
+			 :file => $1,
+			 :offset => $2.to_i,
+			 :length => $3.to_i}
+    when @@adcsnd_filelist
       {:type => :adcsnd,
 			 :file => $1,
 			 :offset => $2.to_i,
