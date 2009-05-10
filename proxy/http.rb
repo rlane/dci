@@ -1,4 +1,5 @@
 require 'mongrel'
+require 'timeout'
 
 module DCProxy
 
@@ -94,12 +95,6 @@ class HttpServer < BaseHttpServer
 	def handle_request client, params
 		puts "handling #{params['REQUEST_PATH'].inspect}"
 		case params['REQUEST_PATH']
-		when '/file'
-			args = parse_args params
-			tth = args['tth']
-			username = args['username']
-			fail unless args and username
-			handle_file client, username, tth
 		when '/filelist'
 			args = parse_args params
 			username = args['username']
@@ -108,55 +103,83 @@ class HttpServer < BaseHttpServer
 		when '/users'
 			handle_users client
 		when /^\/=([\w\d\/\+]+)$/
-			handle_stream client, $1
+			handle_stream_docid client, DtellaIndexReader.decode_docid($1)
+		when /^\/\+([0-9A-Z]+)$/
+			handle_stream_tth client, $1
 		else
 			client.write(Mongrel::Const::ERROR_404_RESPONSE)
 		end
 	end
 
-	def handle_stream out, encoded_docid
-		docid = DtellaIndexReader.decode_docid encoded_docid
-		data = $index.load docid
-		return out.write(Mongrel::Const::ERROR_404_RESPONSE) unless data
-
-		puts "streaming #{encoded_docid} = #{docid} = #{data[:tth]}"
-
-		write_status out, 200, 'OK'
-		write_headers out, 'content-type' => 'application/octet-stream'
-		write_separator out
-		out.write "foo!"
-	end
-
-	def handle_file out, username, tth
+	def start_transfer username, tth, timeout=10
 		#port = 18000 + rand(1000)
 		port = 9020
 		puts "downloading #{username}:#{tth} at #{port}"
 		srv = TCPServer.new port
 		$hub.connect_to_me username, port
 		puts "accepting client connection..."
-		s = srv.accept
+		s = (Timeout.timeout(timeout) { srv.accept }) rescue nil
 		srv.close
+		return unless s
 		puts "client accepted"
 		client = ClientConnection.new "#{username}:#{tth}", s
+	
 		client.adcget "TTH/#{tth}"
 		m = client.readmsg
 		p m
-		raise 'error' unless m[:type] == :adcsnd
+		return unless m[:type] == :adcsnd
+		return s, m[:length]
+	end
 
-		write_status out, 200, 'OK'
-		write_headers out, 'content-type' => 'application/octet-stream'
-		write_separator out
-
+	def transfer_chunk instream, outstream, len
 		count = 0
-		while d = s.readpartial(BUFFER_SIZE)
+		while d = instream.readpartial(BUFFER_SIZE)
 			count += d.size
-			puts "read #{d.size} (#{count}/#{m[:length]})"
-			out.write d
-			break if count >= m[:length]
+			puts "read #{d.size} (#{count}/#{len})"
+			outstream.write d
+			break if count >= len
 		end
+	end
 
-		puts "download complete"
-		client.disconnect
+	def handle_stream_docid out, docid
+		return write_status out, 404, 'invalid id' unless docid
+		data = $index.load docid
+		return write_status out, 404, 'nonexistent id' unless data
+		tth = data[:tth]
+		usernames = data[:locations].map{ |x,_| x }.uniq
+		puts "streaming #{docid} = #{tth} from #{usernames * ','}"
+		stream out, tth, usernames
+	end
+	
+	def handle_stream_tth out, tth
+		data = $index.load_by_tth tth
+		return write_status out, 404, 'bad tth' unless data
+		usernames = data[:locations].map{ |x,_| x }.uniq
+		puts "streaming #{tth} from #{usernames * ','}"
+		stream out, tth, usernames
+	end
+
+	def stream out, tth, usernames
+		online = usernames.select { |x| $hub.users.member? x }
+		p online
+		username = online.shuffle.first
+		p username
+		return write_status out, 404, 'all peers offline' unless username
+
+		s, len = start_transfer username, tth
+		return write_status out, 404, 'remote peer failed to connect' unless s
+
+		begin
+			write_status out, 200, 'OK'
+			write_headers out, 'content-type' => 'application/octet-stream'
+			write_separator out
+			transfer_chunk s, out, len
+			puts "transfer completed"
+		rescue => e
+			puts "transfer failed: #{e.class} #{e.message}"
+		ensure
+			s.close unless s.closed?
+		end
 	end
 
 	def handle_filelist out, username

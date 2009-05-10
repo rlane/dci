@@ -33,6 +33,11 @@ class DtellaIndexReader
 		Marshal.load(doc.data)
 	end
 
+	def load_by_tth tth
+		ms, e = query Xapian::Query.new(mkterm(:tth, tth)), 0, 1
+		ms.first
+	end
+
 	def parse_query query_string
 		@qp.parse_query(query_string, QUERY_PARSER_FLAGS, PREFIXES[:text])
 	end
