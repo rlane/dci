@@ -95,14 +95,8 @@ class DtellaBot
 			return
 		end
 		m = ms[0]
-		seen = []
-		m[:locations].each do |username,path|
-			next if seen.member? username
-			tx from, BASE_URL + "/file?username=#{username}&tth=#{tth}"
-			seen << username
-		end
+		tx from, "Users: #{m[:locations].map{ |x,_| x}.uniq * ', '}"
+		encoded_docid = DtellaIndexReader.encode_docid m[:docid]
+		tx from, "Link: " + BASE_URL + "/=#{encoded_docid}"
 	end
 end
-
-#bot = DtellaBot.new username, password, 'index'
-#Thread.stop

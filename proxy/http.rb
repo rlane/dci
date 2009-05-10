@@ -114,8 +114,8 @@ class HttpServer < BaseHttpServer
 	def start_transfer username, filename, offset=0, timeout=10
 		srv = nil
 		while !srv
-			port = 18000 + rand(1000)
-			#port = 9020
+			#port = 18000 + rand(1000)
+			port = 9020
 			begin
 				srv = TCPServer.new port
 			rescue => e
