@@ -19,16 +19,23 @@ def get_raw(url)
 	end
 end
 
-def get_xml(url); REXML::Document.new(Net::HTTP.get_response(URI.parse(url)).body); end
-
-users = get_xml(BASE_URL + "/users")
-usernames = []
-users.elements.each('users/user/username') { |e| usernames << e.text }
+usernames = nil
+if false
+	def get_xml(url); REXML::Document.new(Net::HTTP.get_response(URI.parse(url)).body); end
+	users = get_xml(BASE_URL + "/users")
+	usernames = []
+	users.elements.each('users/user/username') { |e| usernames << e.text }
+else
+	usernames = get_raw(BASE_URL + "/users").split
+end
 
 usernames.each do |username|
 	filename = FILELIST_DIR + "/#{username}.filelist.xml"
 	next if File.exists? filename
 	next if BLACKLIST.member? username
+	next if username == ''
+	next if username.index('~') == 0
+	next if username.index('*') == 0
 	puts "downloading filelist from #{username}"
 	begin
 		data = get_raw(BASE_URL + "/filelist?username=#{username}")
@@ -37,7 +44,7 @@ usernames.each do |username|
 	rescue Exception => e
 		puts "download failed: #{e.message}"
 		BLACKLIST << username
-		sleep 5
+		sleep 2
 	end
 end
 

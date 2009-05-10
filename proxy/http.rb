@@ -114,8 +114,8 @@ class HttpServer < BaseHttpServer
 	def start_transfer username, filename, offset=0, timeout=10
 		srv = nil
 		while !srv
-			#port = 18000 + rand(1000)
-			port = 9020
+			port = 18000 + rand(1000)
+			#port = 9020
 			begin
 				srv = TCPServer.new port
 			rescue => e
@@ -123,11 +123,14 @@ class HttpServer < BaseHttpServer
 				sleep 1
 			end
 		end
-		puts "downloading #{username}:#{filename} at #{port}"
-		$hub.connect_to_me username, port
-		puts "accepting client connection..."
-		s = (Timeout.timeout(timeout) { srv.accept }) rescue nil
-		srv.close
+		begin
+			puts "downloading #{username}:#{filename} at #{port}"
+			$hub.connect_to_me username, port
+			puts "accepting client connection..."
+			s = (Timeout.timeout(timeout) { srv.accept }) rescue nil
+		ensure
+			srv.close
+		end
 		return unless s
 		puts "client accepted"
 		client = ClientConnection.new "#{username}:#{filename}", s
