@@ -111,7 +111,7 @@ class HttpServer < BaseHttpServer
 		end
 	end
 
-	def start_transfer username, tth, timeout=10
+	def start_transfer username, tth, offset=0, timeout=10
 		#port = 18000 + rand(1000)
 		port = 9020
 		puts "downloading #{username}:#{tth} at #{port}"
@@ -124,7 +124,7 @@ class HttpServer < BaseHttpServer
 		puts "client accepted"
 		client = ClientConnection.new "#{username}:#{tth}", s
 	
-		client.adcget "TTH/#{tth}"
+		client.adcget "TTH/#{tth}", offset
 		m = client.readmsg
 		p m
 		return unless m[:type] == :adcsnd
@@ -133,12 +133,13 @@ class HttpServer < BaseHttpServer
 
 	def transfer_chunk instream, outstream, len
 		count = 0
-		while d = instream.readpartial(BUFFER_SIZE)
+		while d = (instream.readpartial(BUFFER_SIZE) rescue nil)
 			count += d.size
 			puts "read #{d.size} (#{count}/#{len})"
 			outstream.write d
 			break if count >= len
 		end
+		count
 	end
 
 	def handle_stream_docid out, docid
@@ -159,22 +160,30 @@ class HttpServer < BaseHttpServer
 		stream out, tth, usernames
 	end
 
-	def stream out, tth, usernames
+	def stream out, tth, usernames, offset=0, delay=1
 		online = usernames.select { |x| $hub.users.member? x }
 		p online
 		username = online.shuffle.first
 		p username
 		return write_status out, 404, 'all peers offline' unless username
 
-		s, len = start_transfer username, tth
+		s, len = start_transfer username, tth, offset
 		return write_status out, 404, 'remote peer failed to connect' unless s
 
 		begin
+			delay = 1
 			write_status out, 200, 'OK'
 			write_headers out, 'content-type' => 'application/octet-stream'
 			write_separator out
-			transfer_chunk s, out, len
-			puts "transfer completed"
+			count = transfer_chunk s, out, len
+			if count == len
+				puts "transfer completed"
+			else
+				puts "transfer aborted by peer at (#{count}/#{len})"
+				sleep delay
+				puts "recursing!"
+				stream out, tth, usernames, offset+count, delay*2
+			end
 		rescue => e
 			puts "transfer failed: #{e.class} #{e.message}"
 		ensure
