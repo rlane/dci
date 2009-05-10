@@ -3,3 +3,5 @@ blacklist
 data*
 filelist*
 index
+out
+log/*

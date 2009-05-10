@@ -10,7 +10,7 @@ module KeyGenerator
   # <http://wza.digitalbrains.com/DC/doc/Appendix_A.html>.
   #extern "char *generate_key (char *)"
   #create a key for a lock given as challenge
-  def generate_key (challenge)
+  def self.generate_key (challenge)
     clen = challenge.length
     k = ""
     #Convert string to integer array
@@ -33,7 +33,7 @@ module KeyGenerator
     return k
   end
   #encode the special characters to that delightful DCN notation
-  def encodeChar(c)
+  def self.encodeChar(c)
     if [0,5,36,96,124,126].include? c
       return sprintf("/%%DCN%03d\%%/",c)
     end

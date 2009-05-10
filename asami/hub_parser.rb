@@ -1,4 +1,3 @@
-include KeyGenerator
 #a module to parse commands received from a hub
 module HubParser
   @@commandmatch=Regexp.new('^\$(.*)$')
@@ -58,7 +57,7 @@ module HubParser
     when @@lock
       {:type => :lock,
        :lock => $1,
-       :key  => generate_key($1)}
+       :key  => KeyGenerator.generate_key($1)}
     when @@hubname
       {:type => :hubname,
        :name => $1}
