@@ -8,8 +8,9 @@ include REXML
 SERVER_ADDRESS = "localhost"
 SERVER_PORT = 8314
 BASE_URL = "http://#{SERVER_ADDRESS}:#{SERVER_PORT}"
-BLACKLIST = File.open("blacklist").readlines.map { |l| l.chomp }
+BLACKLIST = (File.open("blacklist").readlines rescue []).map { |l| l.chomp }
 FILELIST_DIR = "filelists"
+EXPIRE_SECS = 3600 * 24
 
 def get_raw(url)
 	r = Net::HTTP.get_response(URI.parse(url))
@@ -32,7 +33,7 @@ end
 
 usernames.each do |username|
 	filename = FILELIST_DIR + "/#{username.gsub '/', '_'}.filelist.xml"
-	next if File.exists? filename
+	next if File.exists?(filename) && (File.mtime(filename) > (Time.now - EXPIRE_SECS))
 	next if BLACKLIST.member? username
 	next if username == ''
 	next if username.index('~') == 0
