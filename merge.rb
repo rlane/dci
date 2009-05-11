@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 require 'rubygems'
 require 'libxml'
+require 'fileutils'
 require 'common'
 include LibXML
 
@@ -45,11 +46,16 @@ begin
 		i += 1
 		fail 'bad filename' unless filelist =~ /^#{FILELISTS_DIR}\/(.*).filelist.xml/
 		username = $1
-		File.open(filelist, "r") do |f|
-			puts "(#{i}/#{n}) processing #{filelist}"
-			xml = XML::Reader.io f
-			next if xml.nil?
-			process_filelist xml, username
+		begin
+			File.open(filelist, "r") do |f|
+				puts "(#{i}/#{n}) processing #{filelist}"
+				xml = XML::Reader.io f
+				next if xml.nil?
+				process_filelist xml, username
+			end
+		rescue => e
+			puts "exception: #{e.message}"
+			FileUtils.rm filelist
 		end
 	end
 
