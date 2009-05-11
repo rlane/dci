@@ -1,3 +1,5 @@
+require 'mime/types'
+
 heuristic :extension do
 	locations.each do |_,path|
 		next unless path =~ /\.([\w]{1,5})$/
@@ -37,4 +39,8 @@ heuristic :type_from_path do
 		term! :type, 'movie' if path.index 'movie' and term? :type, 'video'
 		term! :type, 'tv' if path.index 'tv' and term? :type, 'video'
 	end
+end
+
+heuristic :mimetype do
+	mimetype! locations.each { |_,x| MIME::Types.type_for x }.flatten.uniq.first
 end

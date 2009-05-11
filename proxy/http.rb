@@ -170,24 +170,27 @@ class HttpServer < BaseHttpServer
 		return write_status out, 404, 'nonexistent id' unless data
 		tth = data[:tth]
 		usernames = data[:locations].map{ |x,_| x }.uniq
+		mimetype = data[:mimetype] || 'application/octet-stream'
 		puts "streaming #{docid} = #{tth} from #{usernames * ','}"
-		stream out, "TTH/#{tth}", usernames
+		stream out, "TTH/#{tth}", usernames, mimetype
 	end
 	
 	def handle_stream_tth out, tth
 		data = $index.load_by_tth tth
 		return write_status out, 404, 'bad tth' unless data
 		usernames = data[:locations].map{ |x,_| x }.uniq
+		mimetype = data[:mimetype] || 'application/octet-stream'
 		puts "streaming #{tth} from #{usernames * ','}"
-		stream out, "TTH/#{tth}", usernames
+		stream out, "TTH/#{tth}", usernames, mimetype
 	end
 
 	def connect_to_peer usernames, filename, offset
 		online = usernames.select { |x| $hub.users.member? x }.shuffle
+		puts "all peers offline" if online.empty?
 		online.find_value { |username| start_transfer username, filename, offset }
 	end
 
-	def stream out, filename, usernames, offset=0
+	def stream out, filename, usernames, mimetype='application/octet-stream', offset=0
 		delay = 1
 
 		s, len = connect_to_peer usernames, filename, offset
@@ -195,7 +198,7 @@ class HttpServer < BaseHttpServer
 
 		begin
 			write_status out, 200, 'OK'
-			write_headers out, 'content-type' => 'application/octet-stream'
+			write_headers out, 'content-type' => mimetype
 			write_headers out, 'content-length' => len
 			write_separator out
 			while offset < len
@@ -222,7 +225,7 @@ class HttpServer < BaseHttpServer
 	end
 
 	def handle_filelist out, username
-		stream out, 'files.xml', [username]
+		stream out, 'files.xml', [username], 'text/xml'
 	end
 
 	def handle_users out

@@ -10,7 +10,7 @@ $db = Xapian::WritableDatabase.new(INDEX_FILENAME, Xapian::DB_CREATE_OR_OVERWRIT
 $term_generator = Xapian::TermGenerator.new()
 $term_generator.stemmer = Xapian::Stem.new("english")
 
-def index tth, locations, texts, terms, size
+def index tth, locations, texts, terms, size, mimetype
 	doc = Xapian::Document.new
 	doc.add_term mkterm(:tth, tth)
 	terms.each { |type,term| doc.add_term mkterm(type,term) }
@@ -20,7 +20,7 @@ def index tth, locations, texts, terms, size
 	texts.each { |text| $term_generator.index_text text, 1, PREFIXES[:text] }
 	doc.add_value SIZE_VALUENO, size.to_s
 	#puts doc.terms.map { |t| t.term }.join(' ')
-	doc.data = Marshal.dump({:tth => tth, :locations => locations, :size => size})
+	doc.data = Marshal.dump({:tth => tth, :locations => locations, :size => size, :mimetype => mimetype})
 	$db.add_document doc
 end
 
@@ -30,7 +30,7 @@ i = 0
 data.each do |tth,v|
 	#puts "indexing #{tth}"
 	i += 1
-	index tth, v[:locations], v[:texts], v[:terms], v[:size]
+	index tth, v[:locations], v[:texts], v[:terms], v[:size], v[:mimetype]
 	puts "indexed #{i}/#{n}" if (i % 10000) == 0
 end
 data.close
