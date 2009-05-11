@@ -55,8 +55,10 @@ class DtellaBot
 			cmd_query m.from, arg
 		when 'link', 'l'
 			cmd_link m.from, arg
+		when 'help', 'h', '?'
+			cmd_help m.from, arg
 		else
-			tx m.from, "invalid command #{cmd.inspect}"
+			tx m.from, "Invalid command #{cmd.inspect}; type 'help' if you need it."
 		end
 	end
 
@@ -98,5 +100,15 @@ class DtellaBot
 		tx from, "Users: #{m[:locations].map{ |x,_| ($hub.users.member?(x) ? '+' : '') + x}.uniq * ', '}"
 		encoded_docid = DtellaIndexReader.encode_docid m[:docid]
 		tx from, "Link: " + BASE_URL + "/=#{encoded_docid}"
+	end
+
+	def cmd_help from, arg
+		helpmsg = <<-EOS
+Commands:
+  q[uery] query_string: Search for a file matching the given query string
+  l[ink] result_id: Given a result id from the output of query, output an HTTP url to the file
+  e[xplain] query_string: Display description of the parsed query string
+EOS
+		tx from, helpmsg
 	end
 end
