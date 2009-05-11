@@ -5,7 +5,7 @@ require 'net/http'
 require 'cgi'
 include REXML
 
-SERVER_ADDRESS = "localhost"
+SERVER_ADDRESS = ARGV[0] || "localhost"
 SERVER_PORT = 8314
 BASE_URL = "http://#{SERVER_ADDRESS}:#{SERVER_PORT}"
 BLACKLIST = File.open("blacklist").readlines.map { |l| l.chomp }

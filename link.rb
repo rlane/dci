@@ -4,7 +4,7 @@ require 'xapian'
 require 'common'
 
 INDEX_FILENAME = "index"
-SERVER_ADDRESS = "localhost"
+SERVER_ADDRESS = "knuthium.club.cc.cmu.edu"
 SERVER_PORT = 8314
 BASE_URL = "http://#{SERVER_ADDRESS}:#{SERVER_PORT}"
 
