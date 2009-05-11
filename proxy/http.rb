@@ -1,6 +1,16 @@
 require 'mongrel'
 require 'timeout'
 
+module Enumerable
+	def find_value
+		each do |x|
+			r = yield x
+			return r if r
+		end
+		nil
+	end
+end
+
 module DCProxy
 
 class BaseHttpServer
@@ -128,18 +138,19 @@ class HttpServer < BaseHttpServer
 			$hub.connect_to_me username, port
 			puts "accepting client connection..."
 			s = (Timeout.timeout(timeout) { srv.accept }) rescue nil
+		rescue
+			puts "timeout waiting for peer"
 		ensure
 			srv.close
 		end
-		return :timeout unless s
+		return unless s
 		puts "client accepted"
 		client = ClientConnection.new "#{username}:#{filename}", s
 	
 		client.adcget filename, offset
 		m = client.readmsg
-		p m
-		return :noslots unless m[:type] == :adcsnd
-		return :ok, s, m[:length]
+		(puts "unexpected msg type #{m[:type].inspect}"; return) unless m[:type] == :adcsnd
+		return s, m[:length]
 	end
 
 	def transfer_chunk instream, outstream, len
@@ -171,31 +182,38 @@ class HttpServer < BaseHttpServer
 		stream out, "TTH/#{tth}", usernames
 	end
 
-	def stream out, filename, usernames, offset=0, delay=1
-		online = usernames.select { |x| $hub.users.member? x }
-		p online
-		username = online.shuffle.first
-		p username
-		return write_status out, 404, 'all peers offline' unless username
+	def connect_to_peer usernames, filename, offset
+		online = usernames.select { |x| $hub.users.member? x }.shuffle
+		online.find_value { |username| start_transfer username, filename, offset }
+	end
 
-		status, s, len = start_transfer username, filename, offset
-		return write_status out, 404, 'peer failed to connect' if status == :timeout
-		return write_status out, 404, 'peer has no slots available' if status == :noslots
+	def stream out, filename, usernames, offset=0
+		delay = 1
+
+		s, len = connect_to_peer usernames, filename, offset
+		return write_status out, 404, 'all peers unavailable' unless s
 
 		begin
-			delay = 1
 			write_status out, 200, 'OK'
 			write_headers out, 'content-type' => 'application/octet-stream'
+			write_headers out, 'content-length' => len
 			write_separator out
-			count = transfer_chunk s, out, len
-			if count == len
-				puts "transfer completed"
-			else
-				puts "transfer aborted by peer at (#{count}/#{len})"
-				#sleep delay
-				#puts "recursing!"
-				#stream out, filename, usernames, offset+count, delay*2
+			while offset < len
+				n = transfer_chunk s, out, len
+				if n
+					offset += n
+				else
+					puts "transfer aborted by peer at (#{offset}/#{len}), trying to resume"
+					while !s
+						raise 'max retries exceeded' if delay > 2**5
+						sleep delay
+						delay *= 2
+						s, len = connect_to_peer usernames, filename, offset
+					end
+					delay = 1
+				end
 			end
+			puts "transfer completed"
 		rescue => e
 			puts "transfer failed: #{e.class} #{e.message}"
 		ensure
