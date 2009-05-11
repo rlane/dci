@@ -42,5 +42,5 @@ heuristic :type_from_path do
 end
 
 heuristic :mimetype do
-	mimetype! locations.each { |_,x| MIME::Types.type_for x }.flatten.uniq.first
+	mimetype! locations.map{ |_,x| MIME::Types.type_for(x) }.flatten.map{ |x| x.content_type }.uniq.first
 end
