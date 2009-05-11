@@ -49,6 +49,7 @@ class DtellaIndexReader
 		results = []
 		matchset.matches.each do |m|
 			result = Marshal.load(m.document.data)
+			result[:docid] = m.docid
 			result[:rank] = m.rank
 			result[:percent] = m.percent
 			results << result

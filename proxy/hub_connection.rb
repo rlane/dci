@@ -7,11 +7,10 @@ module DCProxy
 class HubConnection < BaseConnection
 	attr_reader :users
 
-	def initialize name, address, port, self_address, self_port
+	def initialize name, address, port, self_address
 		@address = address
 		@port = port
 		@self_address = self_address
-		@self_port = self_port
 		@username = "nobody"
 		@location = 'B6'
 		@sharesize = 106232539641

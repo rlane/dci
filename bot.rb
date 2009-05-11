@@ -8,23 +8,15 @@ require 'set'
 require 'common'
 require 'query-lib'
 
-hostname = "knuthium.club.cc.cmu.edu"
-username = "dtella@club.cc.cmu.edu/#{hostname}"
-password = 'loo7Pho3'
-
-SERVER_ADDRESS = hostname
-SERVER_PORT = 8314
-BASE_URL = "http://#{SERVER_ADDRESS}:#{SERVER_PORT}"
-
 class DtellaBot
-	def initialize username, password, index_filename
+	def initialize username, password
 		@username = username
 		@client = Jabber::Client::new(Jabber::JID::new(@username))
 		@client.connect
 		@client.auth(password)
 		@client.send(Jabber::Presence.new)
 		@roster = Jabber::Roster::Helper.new(@client)
-		@z = DtellaIndexReader.new index_filename
+		@z = $index
 		@options = {
 			:verbose => false,
 			:offset => 0,
@@ -103,14 +95,8 @@ class DtellaBot
 			return
 		end
 		m = ms[0]
-		seen = []
-		m[:locations].each do |username,path|
-			next if seen.member? username
-			tx from, BASE_URL + "/file?username=#{username}&tth=#{tth}"
-			seen << username
-		end
+		tx from, "Users: #{m[:locations].map{ |x,_| ($hub.users.member?(x) ? '+' : '') + x}.uniq * ', '}"
+		encoded_docid = DtellaIndexReader.encode_docid m[:docid]
+		tx from, "Link: " + BASE_URL + "/=#{encoded_docid}"
 	end
 end
-
-bot = DtellaBot.new username, password, 'index'
-Thread.stop

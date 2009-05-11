@@ -9,7 +9,7 @@ class BaseConnection
 	def initialize name, s
 		@s = s
 		@name = name
-		@logfile = File.open("log/#{name}", "w")
+		@logfile = File.open("log/#{name.gsub '/', '_'}", "w")
 	end
 
 	def write msg
