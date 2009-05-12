@@ -117,6 +117,8 @@ class HttpServer < BaseHttpServer
 			handle_stream_docid client, DtellaIndexReader.decode_docid($1)
 		when /^\/\+([0-9A-Z]+)$/
 			handle_stream_tth client, $1
+		when /^\/\+(.*):([0-9A-Z]+)$/
+			handle_stream_manual client, $1, $2
 		else
 			client.write(Mongrel::Const::ERROR_404_RESPONSE)
 		end
@@ -142,10 +144,16 @@ class HttpServer < BaseHttpServer
 		stream out, "TTH/#{tth}", usernames, mimetype, "tth:#{tth}"
 	end
 
+	def handle_stream_manual out, username, tth
+		mimetype = 'application/octet-stream'
+		puts "manually streaming #{tth} from #{username}"
+		stream out, "TTH/#{tth}", [username], mimetype, "tth:#{tth}"
+	end
+
 	def stream out, filename, usernames, mimetype='application/octet-stream', cache_id=nil, offset=0
 		delay = 1
 
-		cache_fn = 'downloads/' + cache_id
+		cache_fn = 'downloads/' + cache_id if cache_id
 		s, len = if cache_id && File.exists?(cache_fn)
 			[File.open(cache_fn, "r"), File.size(cache_fn)]
 		else
