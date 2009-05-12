@@ -55,6 +55,8 @@ class JabberBot
 			cmd_query_online m.from, arg
 		when 'link', 'l'
 			cmd_link m.from, arg
+		when 'info', 'i'
+			cmd_info m.from, arg
 		when 'download', 'd'
 			cmd_download m.from, arg
 		when 'download_remove', 'dr'
@@ -76,18 +78,7 @@ class JabberBot
 	def cmd_query from, query_string
 		q = @z.parse_query query_string
 		ms, estimate = @z.query q, @options[:offset], @options[:count]
-
-		if ms.empty?
-			tx from, "No results found."
-		else
-			tx from, "Results #{@options[:offset]+1} - #{@options[:offset]+ms.size} of #{estimate}:"
-			ms.each do |m|
-				result_id = m[:rank].to_i + 1
-				@result_hashes["#{from}\000#{result_id}"] = m[:tth]
-				username, path = m[:locations][rand(m[:locations].size)]
-				tx from, "#{result_id}: #{m[:percent]}% #{username}:/#{path}"
-			end
-		end
+		send_query_results from, ms, estimate
 	end
 
 	Q = Xapian::Query
@@ -95,7 +86,10 @@ class JabberBot
 		q = @z.parse_query query_string
 		q = Q.new(Q::OP_FILTER, q, Q.new(Q::OP_OR, $hub.users.keys.map{|x| mkterm(:username, x)}))
 		ms, estimate = @z.query q, @options[:offset], @options[:count]
+		send_query_results from, ms, estimate
+	end
 
+	def send_query_results from, ms, estimate
 		if ms.empty?
 			tx from, "No results found."
 		else
@@ -103,13 +97,34 @@ class JabberBot
 			ms.each do |m|
 				result_id = m[:rank].to_i + 1
 				@result_hashes["#{from}\000#{result_id}"] = m[:tth]
-				username, path = m[:locations][rand(m[:locations].size)]
-				tx from, "#{result_id}: #{m[:percent]}% #{username}:/#{path}"
+				usernames = m[:locations].map{|x,_| x}.sort
+				#online_usernames = usernames.select{|x| $hub.users.member? x}
+				users_str = usernames.map{|x| ($hub.users.member?(x) ? '+' : '') + x}.uniq * ', '
+				filename = File.basename m[:locations].first[1]
+				tx from, "#{result_id}: #{filename} (#{users_str})"
 			end
 		end
 	end
 
 	def cmd_link from, result_id
+		tth = @result_hashes["#{from}\000#{result_id}"]
+		if !tth
+			tx from, "invalid result id"
+			return
+		end
+		ms, e = @z.query Xapian::Query.new(mkterm(:tth, tth)), 0, 1
+		if ms.empty?
+			tx from, "result not found in index"
+			return
+		end
+		m = ms[0]
+		usernames = m[:locations].map{|x,_| x}.sort
+		online_usernames = usernames.select{|x| $hub.users.member? x}
+		encoded_docid = DtellaIndexReader.encode_docid m[:docid]
+		tx from, "(#{online_usernames.size}/#{usernames.size}) " + BASE_URL + "/=#{encoded_docid}"
+	end
+
+	def cmd_info from, result_id
 		tth = @result_hashes["#{from}\000#{result_id}"]
 		if !tth
 			tx from, "invalid result id"
@@ -122,7 +137,10 @@ class JabberBot
 			return
 		end
 		m = ms[0]
-		tx from, "Users: #{m[:locations].map{ |x,_| ($hub.users.member?(x) ? '+' : '') + x}.uniq * ', '}"
+		#tx from, "Users: #{m[:locations].map{ |x,_| ($hub.users.member?(x) ? '+' : '') + x}.uniq * ', '}"
+		m[:locations][0...20].each do |username,path|
+			tx from, "#{$hub.users.member?(username) ? '+' : ' '}#{username}:#{path}"
+		end
 		encoded_docid = DtellaIndexReader.encode_docid m[:docid]
 		tx from, "Link: " + BASE_URL + "/=#{encoded_docid}"
 	end

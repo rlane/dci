@@ -15,14 +15,14 @@ class ClientConnection < BaseConnection
 		write "$Lock #{lock} Pk=#{pk}"
 		write "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF GetZBlock ZLIG "
 		write '$Direction Download 100000'
-		p readmsg #MyNick
+		log.debug readmsg.inspect #MyNick
 		m = readmsg #Lock
-		p m
+		log.debug m.inspect
 		write "$Key #{m[:key]}"
 
-		p readmsg #Supports
-		p readmsg #Direction
-		p readmsg #Key
+		log.debug readmsg.inspect #Supports
+		log.debug readmsg.inspect #Direction
+		log.debug readmsg.inspect #Key
 		log.info "client connection initialized"
 	end
 
@@ -33,7 +33,7 @@ class ClientConnection < BaseConnection
 	def download filename, io
 		adcget filename
 		m = readmsg
-		p m
+		log.debug m.inspect
 		raise 'error' unless m[:type] == :adcsnd
 		count = 0
 		while d = s.readpartial(BUFFER_SIZE)
