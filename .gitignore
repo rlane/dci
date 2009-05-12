@@ -4,4 +4,5 @@ data*
 filelist*
 index
 out
-log/*
+log
+downloads/*
