@@ -53,6 +53,10 @@ class DtellaBot
 			cmd_link m.from, arg
 		when 'download', 'd'
 			cmd_download m.from, arg
+		when 'download_remove', 'dr'
+			cmd_download_remove m.from, arg
+		when 'download_status', 'ds'
+			cmd_download_status m.from, arg
 		when 'help', 'h', '?'
 			cmd_help m.from, arg
 		else
@@ -109,6 +113,19 @@ class DtellaBot
 		tx from, "TTH: #{tth}"
 		$downloader.enqueue tth, from
 		tx from, "download added to queue"
+	end
+
+	def cmd_download_remove from, result_id
+		tth = @result_hashes["#{from}\000#{result_id}"]
+		if !tth
+			tx from, "invalid result id"
+			return
+		end
+		$downloader.unenqueue tth, from
+		tx from, "download removed from queue"
+	end
+
+	def cmd_download_status from, arg
 	end
 
 	def cb_download_complete from, tth

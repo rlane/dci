@@ -68,6 +68,9 @@ class HubConnection < BaseConnection
 		write "$ConnectToMe #{nick} #{@self_address}:#{self_port}"
 	end
 
+	def who
+		users.keys
+	end
 end
 
 end

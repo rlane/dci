@@ -1,13 +1,12 @@
 module DCProxy
 
 module Transfer
-	BUFFER_SIZE = 32 * 1024
+	BUFFER_SIZE = 64 * 1024
 
 	def start_transfer username, filename, offset=0, timeout=10
 		srv = nil
 		while !srv
-			#port = 18000 + rand(1000)
-			port = 9020
+			port = DEV ? 9020 : (18000 + rand(1000))
 			begin
 				srv = TCPServer.new port
 			rescue => e
@@ -48,7 +47,7 @@ module Transfer
 
 	def connect_to_peer usernames, filename, offset
 		online = usernames.select { |x| $hub.users.member? x }.shuffle
-		puts "all peers offline" if online.empty?
+		puts "all peers (#{usernames.inspect}) offline" if online.empty?
 		online.find_value { |username| start_transfer username, filename, offset }
 	end
 end

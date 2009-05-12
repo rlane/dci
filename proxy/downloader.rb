@@ -31,6 +31,18 @@ class Downloader
 		end
 	end
 
+	def unenqueue tth, username
+		@lock.synchronize do
+			if @downloads.member? tth
+				@downloads[tth].usernames.delete username
+				if @queue.member?(tth) and @downloads[tth].usernames.empty?
+					@queue.remove tth
+					@downloads.remove tth
+				end
+			end
+		end
+	end
+
 	def run
 		while true
 			tth = @queue.pop
@@ -51,34 +63,28 @@ class Downloader
 		data = $index.load_by_tth(tth) or fail 'invalid TTH'
 		filename = "TTH/#{tth}"
 		offset = 0
+		size = data[:size]
 		usernames = data[:locations].map{ |x,_| x }.uniq
-		delay = 1
-		s, len = connect_to_peer usernames, filename, offset
-		fail 'all peers unavailable' unless s
 		cache_id = 'tth:' + tth
 		cache_fn = 'downloads/' + cache_id
-		out = File.open(cache_fn, 'w')
 		begin
-			while offset < len
-				n = transfer_chunk s, out, len
-				if n
-					offset += n
-				else
-					puts "transfer aborted by peer at (#{offset}/#{len}), trying to resume"
-					while !s
-						raise 'max retries exceeded' if delay > 2**5
-						sleep delay
-						delay *= 2
-						s, len = connect_to_peer usernames, filename, offset
-					end
-					delay = 1
+			out = File.open(cache_fn, 'w')
+			while offset < size
+				s, len = nil, nil
+				while !s
+					s, len = connect_to_peer usernames, filename, offset
+					sleep 10 unless s
 				end
+				n = transfer_chunk s, out, len
+				offset += n
+				puts "transfer aborted by peer at (#{offset}/#{size}), trying to resume" unless offset == size
 			end
 		rescue => e
 			puts "transfer failed: #{e.class} #{e.message}"
+			File.delete cache_fn
 		ensure
-			s.close unless s.closed?
-			out.close unless out.closed?
+			s.close unless !s || s.closed?
+			out.close unless !out || out.closed?
 		end
 	end
 end
