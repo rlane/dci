@@ -1,7 +1,3 @@
-#!/usr/bin/env ruby
-require 'rubygems'
-require 'thread'
-require 'pp'
 require 'xmpp4r/client'
 require 'xmpp4r/roster'
 require 'set'
@@ -55,6 +51,8 @@ class DtellaBot
 			cmd_query m.from, arg
 		when 'link', 'l'
 			cmd_link m.from, arg
+		when 'download', 'd'
+			cmd_download m.from, arg
 		when 'help', 'h', '?'
 			cmd_help m.from, arg
 		else
@@ -100,6 +98,25 @@ class DtellaBot
 		tx from, "Users: #{m[:locations].map{ |x,_| ($hub.users.member?(x) ? '+' : '') + x}.uniq * ', '}"
 		encoded_docid = DtellaIndexReader.encode_docid m[:docid]
 		tx from, "Link: " + BASE_URL + "/=#{encoded_docid}"
+	end
+
+	def cmd_download from, result_id
+		tth = @result_hashes["#{from}\000#{result_id}"]
+		if !tth
+			tx from, "invalid result id"
+			return
+		end
+		tx from, "TTH: #{tth}"
+		$downloader.enqueue tth, from
+		tx from, "download added to queue"
+	end
+
+	def cb_download_complete from, tth
+		tx from, "download of #{tth} complete"
+	end
+
+	def cb_download_failed from, tth, msg
+		tx from, "download of #{tth} failed: #{msg}"
 	end
 
 	def cmd_help from, arg

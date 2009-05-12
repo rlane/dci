@@ -1,5 +1,6 @@
 require 'mongrel'
 require 'timeout'
+require 'proxy/transfer'
 
 module Enumerable
 	def find_value
@@ -96,7 +97,7 @@ class BaseHttpServer
 end
 
 class HttpServer < BaseHttpServer
-	BUFFER_SIZE = 32 * 1024
+	include Transfer
 
 	def parse_args params
 		Mongrel::HttpRequest.query_parse params['QUERY_STRING']
@@ -121,49 +122,6 @@ class HttpServer < BaseHttpServer
 		end
 	end
 
-	def start_transfer username, filename, offset=0, timeout=10
-		srv = nil
-		while !srv
-			#port = 18000 + rand(1000)
-			port = 9020
-			begin
-				srv = TCPServer.new port
-			rescue => e
-				puts "exception creating client port: #{e.message}"
-				sleep 1
-			end
-		end
-		begin
-			puts "downloading #{username}:#{filename} at #{port}"
-			$hub.connect_to_me username, port
-			puts "accepting client connection..."
-			s = (Timeout.timeout(timeout) { srv.accept }) rescue nil
-		rescue
-			puts "timeout waiting for peer"
-		ensure
-			srv.close
-		end
-		return unless s
-		puts "client accepted"
-		client = ClientConnection.new "#{username}:#{filename}", s
-	
-		client.adcget filename, offset
-		m = client.readmsg
-		(puts "unexpected msg type #{m[:type].inspect}"; return) unless m[:type] == :adcsnd
-		return s, m[:length]
-	end
-
-	def transfer_chunk instream, outstream, len
-		count = 0
-		while d = (instream.readpartial(BUFFER_SIZE) rescue nil)
-			count += d.size
-			puts "read #{d.size} (#{count}/#{len})"
-			outstream.write d
-			break if count >= len
-		end
-		count
-	end
-
 	def handle_stream_docid out, docid
 		return write_status out, 404, 'invalid id' unless docid
 		data = $index.load docid
@@ -172,7 +130,7 @@ class HttpServer < BaseHttpServer
 		usernames = data[:locations].map{ |x,_| x }.uniq
 		mimetype = data[:mimetype] || 'application/octet-stream'
 		puts "streaming #{docid} = #{tth} from #{usernames * ','}"
-		stream out, "TTH/#{tth}", usernames, mimetype
+		stream out, "TTH/#{tth}", usernames, mimetype, "tth:#{tth}"
 	end
 	
 	def handle_stream_tth out, tth
@@ -181,19 +139,18 @@ class HttpServer < BaseHttpServer
 		usernames = data[:locations].map{ |x,_| x }.uniq
 		mimetype = data[:mimetype] || 'application/octet-stream'
 		puts "streaming #{tth} from #{usernames * ','}"
-		stream out, "TTH/#{tth}", usernames, mimetype
+		stream out, "TTH/#{tth}", usernames, mimetype, "tth:#{tth}"
 	end
 
-	def connect_to_peer usernames, filename, offset
-		online = usernames.select { |x| $hub.users.member? x }.shuffle
-		puts "all peers offline" if online.empty?
-		online.find_value { |username| start_transfer username, filename, offset }
-	end
-
-	def stream out, filename, usernames, mimetype='application/octet-stream', offset=0
+	def stream out, filename, usernames, mimetype='application/octet-stream', cache_id=nil, offset=0
 		delay = 1
 
-		s, len = connect_to_peer usernames, filename, offset
+		cache_fn = 'downloads/' + cache_id
+		s, len = if cache_id && File.exists?(cache_fn)
+			[File.open(cache_fn, "r"), File.size(cache_fn)]
+		else
+			connect_to_peer usernames, filename, offset
+		end
 		return write_status out, 404, 'all peers unavailable' unless s
 
 		begin
