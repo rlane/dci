@@ -18,7 +18,7 @@ class JabberBot
 		@options = {
 			:verbose => false,
 			:offset => 0,
-			:count => 10,
+			:count => 20,
 			:max_locations => 5,
 		}
 		@result_hashes = {}
