@@ -43,7 +43,7 @@ class HubConnection < BaseConnection
 			when :hello
 				@users[m[:who]] = true
 			when :myinfo
-				log.info "info user #{m[:nick].inspect}: #{m.inspect}"
+				log.debug "info user #{m[:nick].inspect}: #{m.inspect}"
 			when :privmsg
 			when :connect_to_me
 			when :nick_list
