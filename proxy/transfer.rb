@@ -30,7 +30,7 @@ module Transfer
 	
 		client.adcget filename, offset
 		m = client.readmsg
-		(log.error "unexpected msg type #{m[:type].inspect}"; p m; return) unless m[:type] == :adcsnd
+		(log.error "unexpected msg type #{m[:type].inspect}"; return) unless m[:type] == :adcsnd
 		return s, m[:length]
 	end
 
