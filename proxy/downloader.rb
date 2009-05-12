@@ -47,13 +47,13 @@ class Downloader
 		while true
 			tth = @queue.pop
 			dl = @downloads[tth]
-			puts "downloading #{tth} for #{dl.usernames}"
+			log.info "downloading #{tth} for #{dl.usernames}"
 			begin
 				download tth
-				puts "finished #{tth}"
+				log.info "finished #{tth}"
 				dl.usernames.each { |x| $bot.cb_download_complete x, tth }
 			rescue => e
-				puts "failed to download #{tth}: #{e.message}"
+				log.info "failed to download #{tth}: #{e.message}"
 				dl.usernames.each { |x| $bot.cb_download_failed x, tth, e.message }
 			end
 		end
@@ -77,10 +77,10 @@ class Downloader
 				end
 				n = transfer_chunk s, out, len
 				offset += n
-				puts "transfer aborted by peer at (#{offset}/#{size}), trying to resume" unless offset == size
+				log.warn "transfer aborted by peer at (#{offset}/#{size}), trying to resume" unless offset == size
 			end
 		rescue => e
-			puts "transfer failed: #{e.class} #{e.message}"
+			log.warn "transfer failed: #{e.class} #{e.message}"
 			File.delete cache_fn
 		ensure
 			s.close unless !s || s.closed?

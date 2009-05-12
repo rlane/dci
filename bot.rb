@@ -4,7 +4,9 @@ require 'set'
 require 'common'
 require 'query-lib'
 
-class DtellaBot
+module DCProxy
+
+class JabberBot
 	def initialize username, password
 		@username = username
 		@client = Jabber::Client::new(Jabber::JID::new(@username))
@@ -26,7 +28,7 @@ class DtellaBot
 
 	def on_subscription_request item, pres
 		@roster.accept_subscription(pres.from)
-		puts "accepted subscription request from #{pres.from}"
+		log.info "accepted subscription request from #{pres.from}"
 	end
 
 	def tx to, body
@@ -37,10 +39,10 @@ class DtellaBot
 
 	def on_message m
 		if m.body.nil?
-			puts "nil body from #{m.from}"
+			log.warn "nil body from #{m.from}"
 			return
 		end
-		puts "got message from #{m.from}: #{m.body.inspect}"
+		log.info "got message from #{m.from}: #{m.body.inspect}"
 		cmd, arg = m.body.split(nil, 2)
 		cmd ||= ""
 		arg ||= ""
@@ -49,6 +51,8 @@ class DtellaBot
 			cmd_explain m.from, arg
 		when 'query', 'q'
 			cmd_query m.from, arg
+		when 'query_online', 'qo'
+			cmd_query_online m.from, arg
 		when 'link', 'l'
 			cmd_link m.from, arg
 		when 'download', 'd'
@@ -71,6 +75,25 @@ class DtellaBot
 
 	def cmd_query from, query_string
 		q = @z.parse_query query_string
+		ms, estimate = @z.query q, @options[:offset], @options[:count]
+
+		if ms.empty?
+			tx from, "No results found."
+		else
+			tx from, "Results #{@options[:offset]+1} - #{@options[:offset]+ms.size} of #{estimate}:"
+			ms.each do |m|
+				result_id = m[:rank].to_i + 1
+				@result_hashes["#{from}\000#{result_id}"] = m[:tth]
+				username, path = m[:locations][rand(m[:locations].size)]
+				tx from, "#{result_id}: #{m[:percent]}% #{username}:/#{path}"
+			end
+		end
+	end
+
+	Q = Xapian::Query
+	def cmd_query_online from, query_string
+		q = @z.parse_query query_string
+		q = Q.new(Q::OP_FILTER, q, Q.new(Q::OP_OR, $hub.users.keys.map{|x| mkterm(:username, x)}))
 		ms, estimate = @z.query q, @options[:offset], @options[:count]
 
 		if ms.empty?
@@ -145,4 +168,6 @@ Commands:
 EOS
 		tx from, helpmsg
 	end
+end
+
 end

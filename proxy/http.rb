@@ -62,19 +62,19 @@ class BaseHttpServer
 		rescue EOFError,Errno::ECONNRESET,Errno::EPIPE,Errno::EINVAL,Errno::EBADF
 			client.close rescue nil
 		rescue Mongrel::HttpParserError => e
-			STDERR.puts "#{Time.now}: HTTP parse error, malformed request (#{params[Mongrel::Const::HTTP_X_FORWARDED_FOR] || client.peeraddr.last}): #{e.inspect}"
-			STDERR.puts "#{Time.now}: REQUEST DATA: #{data.inspect}\n---\nPARAMS: #{params.inspect}\n---\n"
+			log.warn "HTTP parse error, malformed request (#{params[Mongrel::Const::HTTP_X_FORWARDED_FOR] || client.peeraddr.last}): #{e.inspect}"
+			log.warn "REQUEST DATA: #{data.inspect}\n---\nPARAMS: #{params.inspect}\n---\n"
 		rescue Object => e
-			STDERR.puts "#{Time.now}: Read error: #{e.inspect}"
-			STDERR.puts e.backtrace.join("\n")
+			log.warn "Read error: #{e.inspect}"
+			log.warn e.backtrace.join("\n")
 		ensure
 			begin
 				client.close
 			rescue IOError
 				# Already closed
 			rescue Object => e
-				STDERR.puts "#{Time.now}: Client error: #{e.inspect}"
-				STDERR.puts e.backtrace.join("\n")
+				log.warn "Client error: #{e.inspect}"
+				log.warn e.backtrace.join("\n")
 			end
 		end
 	end
@@ -104,7 +104,7 @@ class HttpServer < BaseHttpServer
 	end
 
 	def handle_request client, params
-		puts "handling #{params['REQUEST_PATH'].inspect}"
+		log.info "handling #{params['REQUEST_PATH'].inspect}"
 		case params['REQUEST_PATH']
 		when '/filelist'
 			args = parse_args params
@@ -131,7 +131,7 @@ class HttpServer < BaseHttpServer
 		tth = data[:tth]
 		usernames = data[:locations].map{ |x,_| x }.uniq
 		mimetype = data[:mimetype] || 'application/octet-stream'
-		puts "streaming #{docid} = #{tth} from #{usernames * ','}"
+		log.info "streaming #{docid} = #{tth} from #{usernames * ','}"
 		stream out, "TTH/#{tth}", usernames, mimetype, "tth:#{tth}"
 	end
 	
@@ -140,13 +140,13 @@ class HttpServer < BaseHttpServer
 		return write_status out, 404, 'bad tth' unless data
 		usernames = data[:locations].map{ |x,_| x }.uniq
 		mimetype = data[:mimetype] || 'application/octet-stream'
-		puts "streaming #{tth} from #{usernames * ','}"
+		log.info "streaming #{tth} from #{usernames * ','}"
 		stream out, "TTH/#{tth}", usernames, mimetype, "tth:#{tth}"
 	end
 
 	def handle_stream_manual out, username, tth
 		mimetype = 'application/octet-stream'
-		puts "manually streaming #{tth} from #{username}"
+		log.info "manually streaming #{tth} from #{username}"
 		stream out, "TTH/#{tth}", [username], mimetype, "tth:#{tth}"
 	end
 
@@ -171,7 +171,7 @@ class HttpServer < BaseHttpServer
 				if n
 					offset += n
 				else
-					puts "transfer aborted by peer at (#{offset}/#{len}), trying to resume"
+					log.warn "transfer aborted by peer at (#{offset}/#{len}), trying to resume"
 					while !s
 						raise 'max retries exceeded' if delay > 2**5
 						sleep delay
@@ -181,9 +181,9 @@ class HttpServer < BaseHttpServer
 					delay = 1
 				end
 			end
-			puts "transfer completed"
+			log.info "transfer completed"
 		rescue => e
-			puts "transfer failed: #{e.class} #{e.message}"
+			log.warn "transfer failed: #{e.class} #{e.message}"
 		ensure
 			s.close unless s.closed?
 		end

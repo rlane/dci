@@ -23,7 +23,7 @@ class ClientConnection < BaseConnection
 		p readmsg #Supports
 		p readmsg #Direction
 		p readmsg #Key
-		puts "client connection initialized"
+		log.info "client connection initialized"
 	end
 
 	def adcget filename, offset = 0, length = -1
@@ -38,7 +38,7 @@ class ClientConnection < BaseConnection
 		count = 0
 		while d = s.readpartial(BUFFER_SIZE)
 			count += d.size
-			puts "read #{d.size} (#{count}/#{m[:length]})"
+			log.debug "read #{d.size} (#{count}/#{m[:length]})"
 			io.write d
 			break if count >= m[:length]
 		end

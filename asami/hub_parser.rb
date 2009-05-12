@@ -46,7 +46,6 @@ module HubParser
 
   # Parse a command (i.e., a message starting with $).
   def HubParser.parse_command_message(text)
-    #puts text
     case text
     when @@validatedenied
       {:type => :denide}
@@ -72,7 +71,6 @@ module HubParser
        :email => $4,
        :sharesize => $5 }
     when @@myinfo2
-      puts text
       {:type=>:myinfo,
        :nick=> $1,
        :interest => $2,

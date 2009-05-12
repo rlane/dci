@@ -19,7 +19,7 @@ class HubConnection < BaseConnection
 		s = TCPSocket.new address, port
 		super name, s
 
-		log "handshaking"
+		log.debug "handshaking"
 		expect "$Lock FOO Pk=BAR"
 		write "$Key E01"
 		expect "$HubName Dtella@CMU"
@@ -34,7 +34,7 @@ class HubConnection < BaseConnection
 			m = HubParser.parse_message l
 			case m[:type]
 			when :chat
-				log "chat from #{m[:from].inspect}: #{m[:text].inspect}"
+				log.info "chat from #{m[:from].inspect}: #{m[:text].inspect}"
 			when :denide
 			when :getpass
 			when :badpass
@@ -43,7 +43,7 @@ class HubConnection < BaseConnection
 			when :hello
 				@users[m[:who]] = true
 			when :myinfo
-				log "info user #{m[:nick].inspect}: #{m.inspect}"
+				log.info "info user #{m[:nick].inspect}: #{m.inspect}"
 			when :privmsg
 			when :connect_to_me
 			when :nick_list
@@ -66,10 +66,6 @@ class HubConnection < BaseConnection
 
 	def connect_to_me nick, self_port
 		write "$ConnectToMe #{nick} #{@self_address}:#{self_port}"
-	end
-
-	def who
-		users.keys
 	end
 end
 

@@ -9,33 +9,25 @@ class BaseConnection
 	def initialize name, s
 		@s = s
 		@name = name
-		@logfile = File.open("log/#{name.gsub '/', '_'}", "w")
 	end
 
 	def write msg
+		log.debug "#{@name} > #{msg.inspect}"
 		d = "#{msg}|"
 		@s.write d
-		@logfile.puts "> #{d.inspect}"
-		@logfile.flush
 	end
 
 	def read
 		msg = @s.gets '|'
 		return unless msg
 		msg.chomp! '|'
-		@logfile.puts "< #{msg.inspect}"
-		@logfile.flush
+		log.debug "#{@name} < #{msg.inspect}"
 		msg
 	end
 
 	def expect msg
 		l = read
 		fail "expected #{msg.inspect}, got #{l.inspect}" unless msg == l
-	end
-
-	def log msg
-		@logfile.puts "! #{msg}"
-		@logfile.flush
 	end
 
 	def disconnect
