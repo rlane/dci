@@ -7,11 +7,11 @@ module DCProxy
 class HubConnection < BaseConnection
 	attr_reader :users
 
-	def initialize name, address, port, self_address
+	def initialize name, username, address, port, self_address
 		@address = address
 		@port = port
 		@self_address = self_address
-		@username = "nobody"
+		@username = username
 		@location = 'B6'
 		@sharesize = 106232539641
 		@users = {}
@@ -24,7 +24,7 @@ class HubConnection < BaseConnection
 		write "$Key E01"
 		expect "$HubName Dtella@CMU"
 		write "$ValidateNick #{@username}"
-		expect "$Hello nobody"
+		expect "$Hello #{@username}"
 		write "$GetNickList"
 		write "$MyINFO $ALL #{@username} <++ V:0.698,M:A,H:1/0/0,S:3,Dt:1.2.0/L>$ $#{@location}\001$$#{@sharesize}$|"
 	end

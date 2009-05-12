@@ -12,17 +12,20 @@ require 'bot'
 
 include DCProxy
 
+DEV = ENV.member? 'DEV'
+
 HUB_ADDRESS = 'localhost'
 HUB_PORT = 7314
-SELF_ADDRESS = ARGV[0] || '128.237.157.88'
+SELF_ADDRESS = DEV ? '128.237.157.88' : '128.237.157.110'
 HTTP_PORT = 8314
 INDEX_FILENAME = "index"
-JABBER_USERNAME = "dtella@club.cc.cmu.edu/#{`hostname`.chomp}"
-JABBER_PASSWORD = 'loo7Pho3'
+JABBER_USERNAME = "data#{DEV ? '-dev' : ''}@club.cc.cmu.edu/foo"
+JABBER_PASSWORD = 'iir5Ahne'
 BASE_URL = "http://#{SELF_ADDRESS}:#{HTTP_PORT}"
+DC_USERNAME = DEV ? 'nobody' : 'data'
 
 $index = DtellaIndexReader.new INDEX_FILENAME
-$hub = HubConnection.new 'hub', HUB_ADDRESS, HUB_PORT, SELF_ADDRESS
+$hub = HubConnection.new 'hub', DC_USERNAME, HUB_ADDRESS, HUB_PORT, SELF_ADDRESS
 $http = DCProxy::HttpServer.new("0.0.0.0", HTTP_PORT)
 $downloader = DCProxy::Downloader.new
 
