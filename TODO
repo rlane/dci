@@ -1,3 +1,5 @@
 http basic auth
 download status
 tarball/directory listing
+page through results
+http range header
