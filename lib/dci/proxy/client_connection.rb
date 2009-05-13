@@ -2,6 +2,8 @@ module DCI::Proxy
 
 class ClientConnection < BaseConnection
 	BUFFER_SIZE = 32 * 1024
+	SUPPORTS = %w(MiniSlots XmlBZList ADCGet TTHL TTHF GetZBlock ZLIG)
+	INITIATIVE_ROLL = 100000
 
 	def initialize name, s
 		super
@@ -9,16 +11,14 @@ class ClientConnection < BaseConnection
 		lock = "EXTENDEDPROTOCOL" + "abcd" * 6
 		pk = "df23" * 4
 		write "$Lock #{lock} Pk=#{pk}"
-		write "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF GetZBlock ZLIG "
-		write '$Direction Download 100000'
-		log.debug readmsg.inspect #MyNick
-		m = readmsg #Lock
-		log.debug m.inspect
+		write "$Supports #{SUPPORTS * ' '}  "
+		write "$Direction Download #{INITIATIVE_ROLL}"
+		expect :type => :mynick
+		m = expect :type => :lock
 		write "$Key #{m[:key]}"
-
-		log.debug readmsg.inspect #Supports
-		log.debug readmsg.inspect #Direction
-		log.debug readmsg.inspect #Key
+		expect :type => :supports
+		expect :type => :direction
+		expect :type => :key
 		log.info "client connection initialized"
 	end
 
@@ -38,10 +38,6 @@ class ClientConnection < BaseConnection
 			io.write d
 			break if count >= m[:length]
 		end
-	end
-
-	def readmsg
-		DCI::ProtocolParser.parse_message read
 	end
 end
 

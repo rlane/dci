@@ -17,7 +17,7 @@ class Server
 	def start
 		$logger = Logger.new(CFG['log_filename'], CFG['log_rotation'])
 		$index = DCI::Index.new CFG['index_filename']
-		$hub = DCI::Proxy::HubConnection.new 'hub', CFG['dc_username'], CFG['hub_address'], CFG['hub_port'], CFG['self_address']
+		$hub = DCI::Proxy::HubConnection.new 'hub', CFG['dc_username'], CFG['hub_address'], CFG['hub_port'], CFG['ctm_address']
 		$http = DCI::Proxy::HttpServer.new('0.0.0.0', CFG['http_port'])
 		$downloader = DCI::Proxy::Downloader.new
 

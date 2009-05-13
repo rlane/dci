@@ -25,9 +25,14 @@ class BaseConnection
 		msg
 	end
 
-	def expect msg
-		l = read
-		fail "expected #{msg.inspect}, got #{l.inspect}" unless msg == l
+	def readmsg
+		DCI::ProtocolParser.parse_message read
+	end
+
+	def expect h
+		m = readmsg or fail "expected #{h.inspect}, got nil"
+		h.each { |k,v| fail "expected #{h.inspect}, got #{m.inspect}" unless m[k] == v }
+		m
 	end
 
 	def disconnect

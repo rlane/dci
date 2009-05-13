@@ -6,7 +6,8 @@ module DCI::Proxy::Transfer
 	def start_transfer username, filename, offset=0, timeout=CFG['ctm_timeout']
 		srv = nil
 		while !srv
-			port = CFG['ctm_port_start'] + rand(CFG['ctm_port_end'] - CFG['ctm_port_start'])
+			port_range_len = CFG['ctm_port_end'] - CFG['ctm_port_start']
+			port = CFG['ctm_port_start'] + (port_range_len == 0 ? 0 : rand(port_range_len))
 			begin
 				srv = TCPServer.new port
 			rescue => e

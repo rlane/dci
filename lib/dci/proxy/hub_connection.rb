@@ -16,18 +16,17 @@ class HubConnection < BaseConnection
 		super name, s
 
 		log.debug "handshaking"
-		expect "$Lock FOO Pk=BAR"
-		write "$Key E01"
-		expect "$HubName Dtella@CMU"
+		m = expect :type => :lock, :lock => 'FOO'
+		write "$Key #{m[:key]}"
+		expect :type => :hubname
 		write "$ValidateNick #{@username}"
-		expect "$Hello #{@username}"
+		expect :type => :hello, :who => @username
 		write "$GetNickList"
 		write "$MyINFO $ALL #{@username} <++ V:0.698,M:A,H:1/0/0,S:3,Dt:1.2.0/L>$ $#{@location}\001$$#{@sharesize}$|"
 	end
 
 	def run
-		while (l = read)
-			m = DCI::ProtocolParser.parse_message l
+		while (m = readmsg)
 			case m[:type]
 			when :chat
 				log.info "chat from #{m[:from].inspect}: #{m[:text].inspect}"
