@@ -56,6 +56,14 @@ class HubConnection < BaseConnection
 	def connect_to_me nick, self_port
 		write "$ConnectToMe #{nick} #{@self_address}:#{self_port}"
 	end
+
+	def privmsg nick, msg
+		write "$To: #{nick} From: #{@username} $<#{@username}> #{msg}"
+	end
+
+	def who
+		@users.keys
+	end
 end
 
 end
