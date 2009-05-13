@@ -21,7 +21,7 @@ class ClientConnection < BaseConnection
 		expect :type => :direction
 		expect :type => :key
 		log.info "client connection initialized: local=#{s.addr.inspect}, remote=#{s.peeraddr.inspect}"
-		$client_logger.log :nick => nick, :ip => s.peeraddr[3], :port => s.peeraddr[1], :hostname => s.peeraddr[2]
+		$client_logger.log :nick => nick, :ip => s.peeraddr[3], :port => s.peeraddr[1], :hostname => s.peeraddr[2], :time => Time.now.to_i
 	end
 
 	def adcget filename, offset = 0, length = -1

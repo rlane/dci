@@ -26,7 +26,7 @@ end
 
 class YamlLogger
 	def initialize filename
-		@f = File.open(filename, 'w+')
+		@f = File.open(filename, 'a')
 	end
 
 	def log h

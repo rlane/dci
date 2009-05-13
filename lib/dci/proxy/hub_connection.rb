@@ -43,9 +43,8 @@ class HubConnection < BaseConnection
 		when :quit
 			@users.delete m[:who]
 		when :myinfo
-		when :pasv_search
-			$search_logger.log m
-		when :active_search
+		when :active_search, :pasv_search
+			m[:time] = Time.now.to_i
 			$search_logger.log m
 		when :op_list
 		when :hubname
