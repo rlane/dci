@@ -45,7 +45,9 @@ class DCI::Index
 
 	def load docid
 		doc = @db.document(docid) rescue (return nil)
-		Marshal.load(doc.data)
+		m = Marshal.load(doc.data)
+		m[:docid] = docid
+		m
 	end
 
 	def load_by_tth tth

@@ -14,6 +14,8 @@ module DCI::Proxy
 BASE_URL = "http://#{CFG['http_address']}:#{CFG['http_port']}"
 
 class Server
+	include DCI::Proxy::Console
+
 	def start
 		$logger = Logger.new(CFG['main_log_filename'], CFG['log_rotation'])
 		$chat_logger = Logger.new(CFG['chat_log_filename'], CFG['log_rotation'])
@@ -40,10 +42,6 @@ class Server
 		end
 
 		$bot = DCI::Proxy::JabberBot.new CFG['jabber_username'], CFG['jabber_password']
-	end
-
-	def who
-		$hub.users.keys
 	end
 end
 
