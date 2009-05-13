@@ -8,8 +8,8 @@ class HubConnection < BaseConnection
 		@port = port
 		@self_address = self_address
 		@username = username
-		@location = 'B6'
-		@sharesize = 106232539641
+		@location = CFG['location']
+		@sharesize = CFG['sharesize']
 		@users = {}
 
 		s = TCPSocket.new address, port
@@ -20,7 +20,7 @@ class HubConnection < BaseConnection
 
 	def handshake
 		log.debug "handshaking"
-		m = expect :type => :lock, :lock => 'FOO'
+		m = expect :type => :lock
 		write "$Key #{m[:key]}"
 		expect :type => :hubname
 		write "$ValidateNick #{@username}"
@@ -45,6 +45,7 @@ class HubConnection < BaseConnection
 		when :active_search
 		when :op_list
 		when :searchresult
+		when :hubname
 		when :junk
 		else
 			log.warn "unhandled message #{m.inspect}"

@@ -13,3 +13,5 @@ log_rotation: 'daily'
 jabber_username: 'foo@bar/baz'
 jabber_password: 'password'
 dc_username: 'user'
+location: 'laptop'
+sharesize: 406232539641
