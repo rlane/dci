@@ -36,10 +36,7 @@ class JabberBot
 	end
 
 	def on_message m
-		if m.body.nil?
-			log.warn "nil body from #{m.from}"
-			return
-		end
+		return if m.body.nil?
 		log.info "got message from #{m.from}: #{m.body.inspect}"
 		cmd, arg = m.body.split(nil, 2)
 		cmd ||= ""
