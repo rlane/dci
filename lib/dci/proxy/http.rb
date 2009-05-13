@@ -120,8 +120,10 @@ class HttpServer < BaseHttpServer
 		tth = data[:tth]
 		usernames = data[:locations].map{ |x,_| x }.uniq
 		mimetype = data[:mimetype] || 'application/octet-stream'
+		offset = 0
+		length = data[:size]
 		log.info "streaming #{docid} = #{tth} from #{usernames * ','}"
-		stream out, "TTH/#{tth}", usernames, mimetype, "tth:#{tth}"
+		stream out, "TTH/#{tth}", usernames, mimetype, "tth:#{tth}", offset, length
 	end
 	
 	def handle_stream_tth out, tth
@@ -129,40 +131,59 @@ class HttpServer < BaseHttpServer
 		return write_status out, 404, 'bad tth' unless data
 		usernames = data[:locations].map{ |x,_| x }.uniq
 		mimetype = data[:mimetype] || 'application/octet-stream'
+		offset = 0
+		length = data[:size]
 		log.info "streaming #{tth} from #{usernames * ','}"
-		stream out, "TTH/#{tth}", usernames, mimetype, "tth:#{tth}"
+		stream out, "TTH/#{tth}", usernames, mimetype, "tth:#{tth}", offset, length
 	end
 
 	def handle_stream_manual out, username, tth
 		mimetype = 'application/octet-stream'
+		offset = 0
+		length = nil
 		log.info "manually streaming #{tth} from #{username}"
-		stream out, "TTH/#{tth}", [username], mimetype, "tth:#{tth}"
+		stream out, "TTH/#{tth}", [username], mimetype, "tth:#{tth}", offset, length
 	end
 
-	def stream out, filename, usernames, mimetype='application/octet-stream', cache_id=nil, offset=0
+	def stream out, filename, usernames, mimetype='application/octet-stream', cache_id=nil, offset=0, length=nil
+		stream_internal out, filename, usernames, cache_id, offset, length do |status|
+			case status
+			when :unavailable
+				write_status out, 404, 'all peers unavailable'
+			when :started
+				write_status out, 200, 'OK'
+				write_headers out, 'content-type' => mimetype
+				write_headers out, 'content-length' => length if length
+				write_separator out
+			end
+		end
+	end
+
+	def stream_internal out, filename, usernames, cache_id, offset, length
 		delay = 1
 
-		cache_fn = CFG['cache_dir'] + cache_id if cache_id
+		cache_fn = CFG['cache_dir'] + '/' + cache_id if cache_id
+		log.info "cache filename: #{cache_fn}"
 		s, len = if cache_id && File.exists?(cache_fn)
 			[File.open(cache_fn, "r"), File.size(cache_fn)]
 		else
 			connect_to_peer usernames, filename, offset
 		end
-		return write_status out, 404, 'all peers unavailable' unless s
+		return yield :unavailable unless s
+		length = len unless length
 
 		begin
-			write_status out, 200, 'OK'
-			write_headers out, 'content-type' => mimetype
-			write_headers out, 'content-length' => len
-			write_separator out
-			while offset < len
-				n = transfer_chunk s, out, len
-				if n
+			yield :started
+			while offset < length
+				n = transfer_chunk s, out, (length-offset)
+				if n > 0
 					offset += n
 				else
-					log.warn "transfer aborted by peer at (#{offset}/#{len}), trying to resume"
+					log.warn "transfer aborted by peer at (#{offset}/#{length}), trying to failover"
+					yield :peer_aborted
 					while !s
 						raise 'max retries exceeded' if delay > 2**5
+						log.info "sleeping #{delay}"
 						sleep delay
 						delay *= 2
 						s, len = connect_to_peer usernames, filename, offset
@@ -171,8 +192,10 @@ class HttpServer < BaseHttpServer
 				end
 			end
 			log.info "transfer completed"
+			yield :complete
 		rescue => e
 			log.warn "transfer failed: #{e.class} #{e.message}"
+			yield :failed
 		ensure
 			s.close unless s.closed?
 		end

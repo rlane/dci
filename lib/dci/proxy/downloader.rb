@@ -64,7 +64,7 @@ class Downloader
 		size = data[:size]
 		usernames = data[:locations].map{ |x,_| x }.uniq
 		cache_id = 'tth:' + tth
-		cache_fn = CFG['cache_dir'] + cache_id
+		cache_fn = CFG['cache_dir'] + '/' + cache_id
 		begin
 			out = File.open(cache_fn, 'w')
 			while offset < size
