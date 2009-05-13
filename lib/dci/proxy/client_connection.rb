@@ -5,7 +5,7 @@ class ClientConnection < BaseConnection
 
 	def initialize name, s
 		super
-		write "$MyNick #{DC_USERNAME}"
+		write "$MyNick #{CFG['dc_username']}"
 		lock = "EXTENDEDPROTOCOL" + "abcd" * 6
 		pk = "df23" * 4
 		write "$Lock #{lock} Pk=#{pk}"

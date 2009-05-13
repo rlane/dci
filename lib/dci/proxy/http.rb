@@ -142,7 +142,7 @@ class HttpServer < BaseHttpServer
 	def stream out, filename, usernames, mimetype='application/octet-stream', cache_id=nil, offset=0
 		delay = 1
 
-		cache_fn = Downloader::CACHE_DIR + cache_id if cache_id
+		cache_fn = CFG['cache_dir'] + cache_id if cache_id
 		s, len = if cache_id && File.exists?(cache_fn)
 			[File.open(cache_fn, "r"), File.size(cache_fn)]
 		else

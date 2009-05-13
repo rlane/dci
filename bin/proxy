@@ -2,28 +2,23 @@
 require 'rubygems'
 require 'thread'
 require 'irb'
+require 'pp'
 require 'dci/proxy'
+
+CFG_FILENAME = 'etc/config.yaml'
+fail "#{CFG_FILENAME} missing" unless File.exists? CFG_FILENAME
+CFG = YAML.load_file CFG_FILENAME
 
 module DCI::Proxy
 
-DEV = ENV.member? 'DEV'
-
-HUB_ADDRESS = 'localhost'
-HUB_PORT = 7314
-SELF_ADDRESS = DEV ? '128.237.157.88' : '128.237.157.110'
-HTTP_PORT = 8314
-INDEX_FILENAME = "var/index"
-JABBER_USERNAME = "data#{DEV ? '-dev' : ''}@club.cc.cmu.edu/foo"
-JABBER_PASSWORD = 'iir5Ahne'
-BASE_URL = "http://#{SELF_ADDRESS}:#{HTTP_PORT}"
-DC_USERNAME = DEV ? 'nobody' : 'data'
+BASE_URL = "http://#{CFG['http_address']}:#{CFG['http_port']}"
 
 class Server
 	def start
-		$logger = Logger.new("var/log/main", 'daily')
-		$index = DCI::Index.new INDEX_FILENAME
-		$hub = DCI::Proxy::HubConnection.new 'hub', DC_USERNAME, HUB_ADDRESS, HUB_PORT, SELF_ADDRESS
-		$http = DCI::Proxy::HttpServer.new("0.0.0.0", HTTP_PORT)
+		$logger = Logger.new(CFG['log_filename'], CFG['log_rotation'])
+		$index = DCI::Index.new CFG['index_filename']
+		$hub = DCI::Proxy::HubConnection.new 'hub', CFG['dc_username'], CFG['hub_address'], CFG['hub_port'], CFG['self_address']
+		$http = DCI::Proxy::HttpServer.new('0.0.0.0', CFG['http_port'])
 		$downloader = DCI::Proxy::Downloader.new
 
 		Thread.new do
@@ -41,7 +36,7 @@ class Server
 			log.fatal "downloader thread terminated"
 		end
 
-		$bot = DCI::Proxy::JabberBot.new JABBER_USERNAME, JABBER_PASSWORD
+		$bot = DCI::Proxy::JabberBot.new CFG['jabber_username'], CFG['jabber_password']
 	end
 
 	def who

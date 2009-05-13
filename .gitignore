@@ -1,2 +1,3 @@
 *.swp
 var/*
+etc/config.yaml
