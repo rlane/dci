@@ -20,7 +20,7 @@ DC_USERNAME = DEV ? 'nobody' : 'data'
 
 class Server
 	def start
-		$logger = Logger.new("log")
+		$logger = Logger.new("var/log/main", 'daily')
 		$index = DCI::Index.new INDEX_FILENAME
 		$hub = DCI::Proxy::HubConnection.new 'hub', DC_USERNAME, HUB_ADDRESS, HUB_PORT, SELF_ADDRESS
 		$http = DCI::Proxy::HttpServer.new("0.0.0.0", HTTP_PORT)
