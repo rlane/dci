@@ -1,12 +1,12 @@
-module DCProxy
+require 'socket'
 
-module Transfer
+module DCI::Proxy::Transfer
 	BUFFER_SIZE = 64 * 1024
 
 	def start_transfer username, filename, offset=0, timeout=10
 		srv = nil
 		while !srv
-			port = DEV ? 9020 : (18000 + rand(1000))
+			port = DCI::Proxy::DEV ? 9020 : (18000 + rand(1000))
 			begin
 				srv = TCPServer.new port
 			rescue => e
@@ -26,10 +26,10 @@ module Transfer
 		end
 		return unless s
 		log.info "client accepted"
-		client = ClientConnection.new "#{username}:#{filename}", s
+		client = DCI::Proxy::ClientConnection.new "#{username}:#{filename}", s
 	
 		client.adcget filename, offset
-		m = client.readmsg
+		m = client.readmsg or return
 		(log.error "unexpected msg type #{m[:type].inspect}"; return) unless m[:type] == :adcsnd
 		return s, m[:length]
 	end
@@ -50,6 +50,4 @@ module Transfer
 		log.warn "all peers (#{usernames.inspect}) offline" if online.empty?
 		online.find_value { |username| start_transfer username, filename, offset }
 	end
-end
-
 end

@@ -1,10 +1,9 @@
 #!/usr/bin/env ruby
 require 'rubygems'
-require 'query-lib'
-require 'common'
 require 'optparse'
+require 'dci'
 
-INDEX_FILENAME = "index"
+INDEX_FILENAME = "var/index"
 
 options = {
 	:verbose => false,
@@ -24,7 +23,7 @@ end.parse!
 (puts "You must specify a query"; exit 1) if ARGV.empty?
 queryString = ARGV * ' '
 
-z = DtellaIndexReader.new INDEX_FILENAME
+z = DCI::Index.new INDEX_FILENAME
 q = z.parse_query queryString
 
 puts "parsed query: #{q.description}" if options[:verbose]

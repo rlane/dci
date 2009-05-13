@@ -1,13 +1,11 @@
 #!/usr/bin/env ruby
 require 'rubygems'
-require 'query-lib'
-require 'common'
-require 'optparse'
 require 'pp'
+require 'dci'
 
-INDEX_FILENAME = "index"
+INDEX_FILENAME = "var/index"
 
-z = DtellaIndexReader.new INDEX_FILENAME
+z = DCI::Index.new INDEX_FILENAME
 
 cmd, *args = *ARGV
 data = case cmd
@@ -16,7 +14,7 @@ when 'docid', 'd'
 	z.load docid
 when 'encoded_docid', 'e'
 	encoded_docid = args[0] or fail 'encoded docid argument required'
-	docid = DtellaIndexReader.decode_docid encoded_docid
+	docid = DCI::Index.decode_docid encoded_docid
 	fail 'invalid docid' unless docid
 	z.load docid
 when 'tth', 'h'

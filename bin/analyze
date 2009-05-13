@@ -1,18 +1,15 @@
 #!/usr/bin/env ruby
 require 'rubygems'
-require 'common'
+require 'dci'
 
-IN_DATA_FILENAME = "data"
-OUT_DATA_FILENAME = "data.analyzed"
+IN_DATA_FILENAME = "var/data"
+OUT_DATA_FILENAME = "var/data.analyzed"
 OPTIMIZE = false
-
-require 'heuristic-lib'
-require 'heuristics'
 
 in_index = out_index = nil
 begin
-	in_index = MarshalledDB.new IN_DATA_FILENAME
-	out_index = MarshalledDB.new OUT_DATA_FILENAME
+	in_index = DCI::MarshalledDB.new IN_DATA_FILENAME
+	out_index = DCI::MarshalledDB.new OUT_DATA_FILENAME
 
 	i = 0
 	n = in_index.size

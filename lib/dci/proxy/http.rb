@@ -1,18 +1,7 @@
 require 'mongrel'
 require 'timeout'
-require 'proxy/transfer'
 
-module Enumerable
-	def find_value
-		each do |x|
-			r = yield x
-			return r if r
-		end
-		nil
-	end
-end
-
-module DCProxy
+module DCI::Proxy
 
 class BaseHttpServer
 	def initialize address, port
@@ -114,7 +103,7 @@ class HttpServer < BaseHttpServer
 		when '/users'
 			handle_users client
 		when /^\/=([\w\d\/\+]+)$/
-			handle_stream_docid client, DtellaIndexReader.decode_docid($1)
+			handle_stream_docid client, DCI::Index.decode_docid($1)
 		when /^\/\+([0-9A-Z]+)$/
 			handle_stream_tth client, $1
 		when /^\/\+(.*):([0-9A-Z]+)$/
@@ -153,7 +142,7 @@ class HttpServer < BaseHttpServer
 	def stream out, filename, usernames, mimetype='application/octet-stream', cache_id=nil, offset=0
 		delay = 1
 
-		cache_fn = 'downloads/' + cache_id if cache_id
+		cache_fn = Downloader::CACHE_DIR + cache_id if cache_id
 		s, len = if cache_id && File.exists?(cache_fn)
 			[File.open(cache_fn, "r"), File.size(cache_fn)]
 		else

@@ -1,7 +1,22 @@
 require 'xapian'
-require 'common'
 
-class DtellaIndexReader
+class DCI::Index
+
+	NORMAL_PREFIXES = {
+		:text => 'B',
+	}
+
+	BOOLEAN_PREFIXES = {
+		:type => 'T',
+		:username => 'U',
+		:tth => 'H',
+		:extension => 'E',
+	}
+
+	PREFIXES = NORMAL_PREFIXES.merge BOOLEAN_PREFIXES
+
+	SIZE_VALUENO = 0
+
 	QP = Xapian::QueryParser
 	QUERY_PARSER_FLAGS = 
 	 QP::FLAG_PHRASE |
@@ -34,7 +49,7 @@ class DtellaIndexReader
 	end
 
 	def load_by_tth tth
-		ms, e = query Xapian::Query.new(mkterm(:tth, tth)), 0, 1
+		ms, e = query Xapian::Query.new(klass.mkterm(:tth, tth)), 0, 1
 		ms.first
 	end
 
@@ -55,5 +70,10 @@ class DtellaIndexReader
 			results << result
 		end
 		[results, matchset.matches_estimated]
+	end
+
+	def self.mkterm(type, value)
+		prefix = PREFIXES[type] or raise "Invalid term type #{type.inspect}"
+		"#{prefix}#{value}"
 	end
 end

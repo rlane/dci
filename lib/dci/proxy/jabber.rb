@@ -1,10 +1,8 @@
 require 'xmpp4r/client'
 require 'xmpp4r/roster'
-require 'set'
-require 'common'
-require 'query-lib'
+require 'dci'
 
-module DCProxy
+module DCI::Proxy
 
 class JabberBot
 	def initialize username, password
@@ -84,7 +82,7 @@ class JabberBot
 	Q = Xapian::Query
 	def cmd_query_online from, query_string
 		q = @z.parse_query query_string
-		q = Q.new(Q::OP_FILTER, q, Q.new(Q::OP_OR, $hub.users.keys.map{|x| mkterm(:username, x)}))
+		q = Q.new(Q::OP_FILTER, q, Q.new(Q::OP_OR, $hub.users.keys.map{|x| DCI::Index.mkterm(:username, x)}))
 		ms, estimate = @z.query q, @options[:offset], @options[:count]
 		send_query_results from, ms, estimate
 	end
@@ -112,7 +110,7 @@ class JabberBot
 			tx from, "invalid result id"
 			return
 		end
-		ms, e = @z.query Xapian::Query.new(mkterm(:tth, tth)), 0, 1
+		ms, e = @z.query Xapian::Query.new(DCI::Index.mkterm(:tth, tth)), 0, 1
 		if ms.empty?
 			tx from, "result not found in index"
 			return
@@ -120,7 +118,7 @@ class JabberBot
 		m = ms[0]
 		usernames = m[:locations].map{|x,_| x}.sort
 		online_usernames = usernames.select{|x| $hub.users.member? x}
-		encoded_docid = DtellaIndexReader.encode_docid m[:docid]
+		encoded_docid = DCI::Index.encode_docid m[:docid]
 		tx from, "(#{online_usernames.size}/#{usernames.size}) " + BASE_URL + "/=#{encoded_docid}"
 	end
 
@@ -131,7 +129,7 @@ class JabberBot
 			return
 		end
 		tx from, "TTH: #{tth}"
-		ms, e = @z.query Xapian::Query.new(mkterm(:tth, tth)), 0, 1
+		ms, e = @z.query Xapian::Query.new(DCI::Index.mkterm(:tth, tth)), 0, 1
 		if ms.empty?
 			tx from, "result not found in index"
 			return
@@ -141,7 +139,7 @@ class JabberBot
 		m[:locations][0...20].each do |username,path|
 			tx from, "#{$hub.users.member?(username) ? '+' : ' '}#{username}:#{path}"
 		end
-		encoded_docid = DtellaIndexReader.encode_docid m[:docid]
+		encoded_docid = DCI::Index.encode_docid m[:docid]
 		tx from, "Link: " + BASE_URL + "/=#{encoded_docid}"
 	end
 

@@ -53,3 +53,5 @@ end
 def heuristic name, &b
 	$heuristics << [name.to_s,b]
 end
+
+require 'lib/dci/heuristics/basic'

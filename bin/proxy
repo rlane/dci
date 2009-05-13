@@ -2,15 +2,9 @@
 require 'rubygems'
 require 'thread'
 require 'irb'
+require 'dci/proxy'
 
-require 'proxy/hub_connection'
-require 'proxy/client_connection'
-require 'proxy/http'
-require 'proxy/downloader'
-require 'query-lib'
-require 'bot'
-
-module DCProxy
+module DCI::Proxy
 
 DEV = ENV.member? 'DEV'
 
@@ -18,7 +12,7 @@ HUB_ADDRESS = 'localhost'
 HUB_PORT = 7314
 SELF_ADDRESS = DEV ? '128.237.157.88' : '128.237.157.110'
 HTTP_PORT = 8314
-INDEX_FILENAME = "index"
+INDEX_FILENAME = "var/index"
 JABBER_USERNAME = "data#{DEV ? '-dev' : ''}@club.cc.cmu.edu/foo"
 JABBER_PASSWORD = 'iir5Ahne'
 BASE_URL = "http://#{SELF_ADDRESS}:#{HTTP_PORT}"
@@ -27,10 +21,10 @@ DC_USERNAME = DEV ? 'nobody' : 'data'
 class Server
 	def start
 		$logger = Logger.new("log")
-		$index = DtellaIndexReader.new INDEX_FILENAME
-		$hub = HubConnection.new 'hub', DC_USERNAME, HUB_ADDRESS, HUB_PORT, SELF_ADDRESS
-		$http = DCProxy::HttpServer.new("0.0.0.0", HTTP_PORT)
-		$downloader = DCProxy::Downloader.new
+		$index = DCI::Index.new INDEX_FILENAME
+		$hub = DCI::Proxy::HubConnection.new 'hub', DC_USERNAME, HUB_ADDRESS, HUB_PORT, SELF_ADDRESS
+		$http = DCI::Proxy::HttpServer.new("0.0.0.0", HTTP_PORT)
+		$downloader = DCI::Proxy::Downloader.new
 
 		Thread.new do
 			$hub.run
@@ -47,16 +41,12 @@ class Server
 			log.fatal "downloader thread terminated"
 		end
 
-		$bot = JabberBot.new JABBER_USERNAME, JABBER_PASSWORD
+		$bot = DCI::Proxy::JabberBot.new JABBER_USERNAME, JABBER_PASSWORD
 	end
 
 	def who
 		$hub.users.keys
 	end
-end
-
-class ::Object
-	def log; $logger; end
 end
 
 $server = Server.new

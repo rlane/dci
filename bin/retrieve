@@ -8,8 +8,8 @@ include REXML
 SERVER_ADDRESS = ARGV[0] || "localhost"
 SERVER_PORT = 8314
 BASE_URL = "http://#{SERVER_ADDRESS}:#{SERVER_PORT}"
-BLACKLIST = (File.open("blacklist").readlines rescue []).map { |l| l.chomp }
-FILELIST_DIR = "filelists"
+BLACKLIST = (File.open("var/blacklist").readlines rescue []).map { |l| l.chomp }
+FILELIST_DIR = "var/filelists"
 EXPIRE_SECS = 3600 * 24
 
 def get_raw(url)
@@ -50,4 +50,4 @@ usernames.each do |username|
 	end
 end
 
-File.open("blacklist", "w") { |f| BLACKLIST.each { |l| f.puts l } }
+File.open("var/blacklist", "w") { |f| BLACKLIST.each { |l| f.puts l } }

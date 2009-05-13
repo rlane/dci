@@ -1,8 +1,4 @@
-require 'asami/key_generator'
-require 'asami/client_parser'
-require 'proxy/base_connection'
-
-module DCProxy
+module DCI::Proxy
 
 class ClientConnection < BaseConnection
 	BUFFER_SIZE = 32 * 1024
@@ -45,7 +41,7 @@ class ClientConnection < BaseConnection
 	end
 
 	def readmsg
-		ClientParser.parse_message read
+		DCI::ProtocolParser.parse_message read
 	end
 end
 

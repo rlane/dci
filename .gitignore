@@ -1,8 +1,2 @@
 *.swp
-blacklist
-data*
-filelist*
-index
-out
-log
-downloads/*
+var/*

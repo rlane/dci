@@ -1,6 +1,6 @@
 require 'socket'
 
-module DCProxy
+module DCI::Proxy
 
 class BaseConnection
 	attr_reader :s

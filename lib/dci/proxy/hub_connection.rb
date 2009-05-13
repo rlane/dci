@@ -1,8 +1,4 @@
-require 'asami/key_generator'
-require 'asami/hub_parser'
-require 'proxy/base_connection'
-
-module DCProxy
+module DCI::Proxy
 
 class HubConnection < BaseConnection
 	attr_reader :users
@@ -31,7 +27,7 @@ class HubConnection < BaseConnection
 
 	def run
 		while (l = read)
-			m = HubParser.parse_message l
+			m = DCI::ProtocolParser.parse_message l
 			case m[:type]
 			when :chat
 				log.info "chat from #{m[:from].inspect}: #{m[:text].inspect}"

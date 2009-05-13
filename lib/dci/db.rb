@@ -1,25 +1,8 @@
+module DCI
 
-NORMAL_PREFIXES = {
-	:text => 'B',
-}
+DB_TYPE = :qdbm
 
-BOOLEAN_PREFIXES = {
-	:type => 'T',
-	:username => 'U',
-	:tth => 'H',
-	:extension => 'E',
-}
-
-PREFIXES = NORMAL_PREFIXES.merge BOOLEAN_PREFIXES
-
-SIZE_VALUENO = 0
-
-def mkterm(type, value)
-	prefix = PREFIXES[type] or raise "Invalid term type #{type.inspect}"
-	"#{prefix}#{value}"
-end
-
-if true
+if DB_TYPE == :qdbm
 # 35s 22M
 require 'depot'
 class MarshalledDB < Depot
@@ -40,9 +23,8 @@ class MarshalledDB < Depot
 		super { |k,v| yield k, Marshal.load(v) }
 	end
 end
-end
 
-if false
+elsif DB_TYPE == :gdbm
 # 40s 133m
 require 'gdbm'
 class MarshalledDB < GDBM
@@ -63,4 +45,9 @@ class MarshalledDB < GDBM
 		reorganize
 	end
 end
+
+else
+raise "invalid db type #{DB_TYPE}"
+end
+
 end
