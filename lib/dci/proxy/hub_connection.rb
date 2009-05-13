@@ -32,7 +32,9 @@ class HubConnection < BaseConnection
 	def process m
 		case m[:type]
 		when :chat
-			log.info "chat from #{m[:from].inspect}: #{m[:text].inspect}"
+			$chat_logger.info "chat: #{m[:from].inspect} > #{m[:text].inspect}"
+		when :privmsg
+			$chat_logger.info "privmsg: #{m[:from].inspect} > #{m[:text].inspect}"
 		when :nick_list
 			@users.clear
 			m[:nicks].each { |x| @users[x] = true }

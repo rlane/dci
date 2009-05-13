@@ -16,6 +16,7 @@ BASE_URL = "http://#{CFG['http_address']}:#{CFG['http_port']}"
 class Server
 	def start
 		$logger = Logger.new(CFG['main_log_filename'], CFG['log_rotation'])
+		$chat_logger = Logger.new(CFG['chat_log_filename'], CFG['log_rotation'])
 		$search_logger = YamlLogger.new(CFG['search_log_filename'])
 		$client_logger = YamlLogger.new(CFG['client_log_filename'])
 		$index = DCI::Index.new CFG['index_filename']

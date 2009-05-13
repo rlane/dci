@@ -8,7 +8,10 @@ ctm_port_end: 6100
 ctm_timeout: 10
 index_filename: 'var/index'
 cache_dir: 'var/downloads'
-log_filename: 'var/log/main'
+main_log_filename: 'var/log/main'
+chat_log_filename: 'var/log/chat'
+search_log_filename: 'var/log/search'
+client_log_filename: 'var/log/client'
 log_rotation: 'daily'
 jabber_username: 'foo@bar/baz'
 jabber_password: 'password'
