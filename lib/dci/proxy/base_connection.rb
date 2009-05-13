@@ -11,6 +11,16 @@ class BaseConnection
 		@name = name
 	end
 
+	def run
+		while (m = readmsg)
+			begin
+				process m
+			rescue => e
+				log.error "exception processing message #{m.inspect}: #{e.message}"
+			end
+		end
+	end
+
 	def write msg
 		log.debug "#{@name} > #{msg.inspect}"
 		d = "#{msg}|"

@@ -15,6 +15,10 @@ class HubConnection < BaseConnection
 		s = TCPSocket.new address, port
 		super name, s
 
+		handshake
+	end
+
+	def handshake
 		log.debug "handshaking"
 		m = expect :type => :lock, :lock => 'FOO'
 		write "$Key #{m[:key]}"
@@ -25,37 +29,25 @@ class HubConnection < BaseConnection
 		write "$MyINFO $ALL #{@username} <++ V:0.698,M:A,H:1/0/0,S:3,Dt:1.2.0/L>$ $#{@location}\001$$#{@sharesize}$|"
 	end
 
-	def run
-		while (m = readmsg)
-			case m[:type]
-			when :chat
-				log.info "chat from #{m[:from].inspect}: #{m[:text].inspect}"
-			when :denide
-			when :getpass
-			when :badpass
-			when :lock
-			when :hubname
-			when :hello
-				@users[m[:who]] = true
-			when :myinfo
-				log.debug "info user #{m[:nick].inspect}: #{m.inspect}"
-			when :privmsg
-			when :connect_to_me
-			when :nick_list
-				@users.clear
-				m[:nicks].each { |x| @users[x] = true }
-			when :passive_search_result
-			when :pasv_search
-			when :active_search
-			when :op_list
-			when :quit
-				@users.delete m[:who]
-			when :searchresult
-			when :revconnect
-			when :junk
-			else
-				raise "unknown message type #{m[:type].inspect}"
-			end
+	def process m
+		case m[:type]
+		when :chat
+			log.info "chat from #{m[:from].inspect}: #{m[:text].inspect}"
+		when :nick_list
+			@users.clear
+			m[:nicks].each { |x| @users[x] = true }
+		when :hello
+			@users[m[:who]] = true
+		when :quit
+			@users.delete m[:who]
+		when :myinfo
+		when :pasv_search
+		when :active_search
+		when :op_list
+		when :searchresult
+		when :junk
+		else
+			log.warn "unhandled message #{m.inspect}"
 		end
 	end
 
