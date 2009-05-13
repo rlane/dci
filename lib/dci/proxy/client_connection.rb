@@ -13,13 +13,15 @@ class ClientConnection < BaseConnection
 		write "$Lock #{lock} Pk=#{pk}"
 		write "$Supports #{SUPPORTS * ' '}  "
 		write "$Direction Download #{INITIATIVE_ROLL}"
-		expect :type => :mynick
+		m = expect :type => :mynick
+		nick = m[:nick]
 		m = expect :type => :lock
 		write "$Key #{m[:key]}"
 		expect :type => :supports
 		expect :type => :direction
 		expect :type => :key
-		log.info "client connection initialized"
+		log.info "client connection initialized: local=#{s.addr.inspect}, remote=#{s.peeraddr.inspect}"
+		$client_logger.log :nick => nick, :ip => s.peeraddr[3], :port => s.peeraddr[1], :hostname => s.peeraddr[2]
 	end
 
 	def adcget filename, offset = 0, length = -1

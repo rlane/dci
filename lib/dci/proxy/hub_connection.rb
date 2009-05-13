@@ -42,9 +42,10 @@ class HubConnection < BaseConnection
 			@users.delete m[:who]
 		when :myinfo
 		when :pasv_search
+			$search_logger.log m
 		when :active_search
+			$search_logger.log m
 		when :op_list
-		when :searchresult
 		when :hubname
 		when :junk
 		else

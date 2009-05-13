@@ -1,3 +1,6 @@
+module DCI
+end
+
 module Enumerable
 	def find_value
 		each do |x|
@@ -5,11 +8,6 @@ module Enumerable
 			return r if r
 		end
 		nil
-	end
-end
-
-class Nop
-	def send sym, *a
 	end
 end
 
@@ -26,7 +24,13 @@ class Object
 	def fatal!; $logger.level = Logger::FATAL; end
 end
 
-module DCI
-end
+class YamlLogger
+	def initialize filename
+		@f = File.open(filename, 'w+')
+	end
 
-$logger = Nop.new
+	def log h
+		@f.puts h.to_yaml
+		@f.flush
+	end
+end
