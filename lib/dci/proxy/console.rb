@@ -32,9 +32,57 @@ module DCI::Proxy::Console
 		end
 	end
 
-	def inspect x
+	def i x
 		pp(get(x) || return)
 	end
+
+	def mkquery q
+		case q
+		when String
+			$index.parse_query q
+		when Q
+			q
+		else
+			fail "invalid query"
+		end
+	end
+
+	Q = Xapian::Query
+	def query q, options={}
+		options = {
+			:verbose => false,
+			:offset => 0,
+			:count => 10,
+			:max_locations => 5,
+		}.merge options
+
+		q = mkquery q
+		ms, estimate = $index.query q, options[:offset], options[:count]
+
+		if ms.empty?
+			puts "No results found."
+			return false
+		end
+
+		puts "Results 1 - #{ms.size} of #{estimate}:"
+
+		ms.each do |m|
+			puts "#{m[:rank] + 1}: #{m[:percent]}% #{m[:tth]}"
+			m[:locations][0...options[:max_locations]].each do |username,path|
+				puts "  #{username}:/#{path}"
+			end
+			puts "  + #{m[:locations].size - options[:max_locations]} more" if m[:locations].size > options[:max_locations]
+		end
+		true
+	end
+	alias q query
+
+	def query_online q, options={}
+		q = mkquery q
+		q = Q.new(Q::OP_FILTER, q, Q.new(Q::OP_OR, $hub.users.keys.map{|x| DCI::Index.mkterm(:username, x)}))
+		query q, options
+	end
+	alias qo query_online
 
 	def link x, type=:tth
 		data = get(x) || return
@@ -80,16 +128,23 @@ module DCI::Proxy::Console
 	def reload
 		old_verbose = $VERBOSE
 		$VERBOSE = nil
-		fs = $".grep(/^dci\//)
-		fs.each { |f| $".delete f }
-		fs.each do |f|
-			begin
-				require f
-			rescue LoadError => e
-				raise unless e.message =~ /no such file to load/
+		old_features = $".dup
+		begin
+			fs = $".grep(/^dci\//)
+			fs.each { |f| $".delete f }
+			fs.each do |f|
+				begin
+					require f
+				rescue LoadError => e
+					raise unless e.message =~ /no such file to load/
+				end
 			end
+		rescue Exception => e
+			$".clear
+			$".concat old_features
+		ensure
+			$VERBOSE = old_verbose
 		end
-		$VERBOSE = old_verbose
 		true
 	end
 end

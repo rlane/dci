@@ -49,8 +49,11 @@ $server = Server.new
 $server.start
 
 IRB.setup nil
-irb = IRB::Irb.new(IRB::WorkSpace.new($server))
+irb = IRB::Irb.new
 IRB.conf[:MAIN_CONTEXT] = irb.context
+main = irb.context.main
+main_metaclass = class << main; self; end
+main_metaclass.send :include, DCI::Proxy::Console
 trap('SIGINT') { irb.signal_handle }
 catch(:IRB_EXIT) { irb.eval_input }
 
