@@ -7,20 +7,13 @@ require 'fileutils'
 require 'dci'
 require 'xapian'
 include LibXML
-
-SERVER_ADDRESS = ARGV[0] || "localhost"
-SERVER_PORT = 8314
-BASE_URL = "http://#{SERVER_ADDRESS}:#{SERVER_PORT}"
-BLACKLIST = (File.open("var/blacklist").readlines rescue []).map { |l| l.chomp }
-FILELISTS_DIR = "var/filelists"
-DATA_FILENAME = "var/data"
-ANALYZED_DATA_FILENAME = "var/data.analyzed"
-INDEX_FILENAME = "var/index"
-EXPIRE_SECS = 3600 * 24
-OPTIMIZE = false
-LIMIT = 20
-
 R = XML::Reader
+
+CFG_FILENAME = 'etc/config.yaml'
+fail "#{CFG_FILENAME} missing" unless File.exists? CFG_FILENAME
+CFG = YAML.load_file CFG_FILENAME
+
+BASE_URL = "http://#{CFG['http_address']}:#{CFG['http_port']}"
 
 def get_raw(url)
 	r = Net::HTTP.get_response(URI.parse(url))
@@ -32,12 +25,13 @@ def get_raw(url)
 end
 
 def get_filelists
+	blacklist = (File.open(CFG['blacklist_filename']).readlines rescue []).map { |l| l.chomp }
 	usernames = get_raw(BASE_URL + "/users").split
 
 	usernames.each do |username|
-		filename = FILELISTS_DIR + "/#{username.gsub '/', '_'}.filelist.xml"
-		next if File.exists?(filename) && (File.mtime(filename) > (Time.now - EXPIRE_SECS))
-		next if BLACKLIST.member? username
+		filename = CFG['filelists_dir'] + "/#{username.gsub '/', '_'}.filelist.xml"
+		next if File.exists?(filename) && (File.mtime(filename) > (Time.now - CFG['filelist_expire']))
+		next if blacklist.member? username
 		next if username == ''
 		next if username.index('~') == 0
 		next if username.index('*') == 0
@@ -48,16 +42,16 @@ def get_filelists
 			File.open(filename, "w") { |f| f.puts data }
 		rescue Exception => e
 			puts "download failed: #{e.message}"
-			BLACKLIST << username
+			blacklist << username
 			sleep 2
 		end
 	end
 
-	File.open("var/blacklist", "w") { |f| BLACKLIST.each { |l| f.puts l } }
+	File.open(CFG['blacklist_filename'], "w") { |f| blacklist.each { |l| f.puts l } }
 end
 
 def merge
-	filelists = Dir.glob(FILELISTS_DIR + "/*").take(LIMIT)
+	filelists = Dir.glob(CFG['filelists_dir'] + "/*").take(CFG['index_limit'])
 
 	def process_file tth, username, path, size
 		x = $index[tth] || { :locations => [], :size => nil }
@@ -83,13 +77,13 @@ def merge
 	end
 
 	begin
-		$index = DCI::MarshalledDB.new DATA_FILENAME
+		$index = DCI::MarshalledDB.new CFG['data_filename'], Depot::OWRITER|Depot::OCREAT|Depot::OTRUNC
 
 		i = 0
 		n = filelists.length
 		filelists.each do |filelist|
 			i += 1
-			fail 'bad filename' unless filelist =~ /^#{FILELISTS_DIR}\/(.*).filelist.xml/
+			fail 'bad filename' unless filelist =~ /^#{CFG['filelists_dir']}\/(.*).filelist.xml/
 			username = $1
 			begin
 				File.open(filelist, "r") do |f|
@@ -104,7 +98,7 @@ def merge
 			end
 		end
 
-		if OPTIMIZE
+		if CFG['index_optimize']
 			puts "optimizing..."
 			$index.optimize
 		end
@@ -116,8 +110,8 @@ end
 def analyze
 	in_index = out_index = nil
 	begin
-		in_index = DCI::MarshalledDB.new DATA_FILENAME
-		out_index = DCI::MarshalledDB.new ANALYZED_DATA_FILENAME
+		in_index = DCI::MarshalledDB.new CFG['data_filename'], Depot::OREADER
+		out_index = DCI::MarshalledDB.new CFG['analyzed_data_filename'], Depot::OWRITER|Depot::OCREAT|Depot::OTRUNC
 
 		i = 0
 		n = in_index.size
@@ -128,7 +122,7 @@ def analyze
 			puts "analyzed #{i}/#{n}" if (i % 10000) == 0
 		end
 
-		if OPTIMIZE
+		if CFG['optimize']
 			puts "optimizing..."
 			out_index.optimize
 		end
@@ -139,7 +133,7 @@ def analyze
 end
 
 def index
-	$db = Xapian::WritableDatabase.new(INDEX_FILENAME, Xapian::DB_CREATE_OR_OVERWRITE)
+	$db = Xapian::WritableDatabase.new(CFG['index_filename'], Xapian::DB_CREATE_OR_OVERWRITE)
 	$term_generator = Xapian::TermGenerator.new()
 	$term_generator.stemmer = Xapian::Stem.new("english")
 
@@ -157,7 +151,7 @@ def index
 		$db.add_document doc
 	end
 
-	data = DCI::MarshalledDB.new ANALYZED_DATA_FILENAME
+	data = DCI::MarshalledDB.new CFG['analyzed_data_filename'], Depot::OREADER
 	n = data.size
 	i = 0
 	data.each do |tth,v|
@@ -169,7 +163,7 @@ def index
 	data.close
 end
 
-get_filelists
+#get_filelists
 merge
 analyze
 index

@@ -3,7 +3,9 @@ require 'rubygems'
 require 'optparse'
 require 'dci'
 
-INDEX_FILENAME = "var/index"
+CFG_FILENAME = 'etc/config.yaml'
+fail "#{CFG_FILENAME} missing" unless File.exists? CFG_FILENAME
+CFG = YAML.load_file CFG_FILENAME
 
 options = {
 	:verbose => false,
@@ -23,7 +25,7 @@ end.parse!
 (puts "You must specify a query"; exit 1) if ARGV.empty?
 queryString = ARGV * ' '
 
-z = DCI::Index.new INDEX_FILENAME
+z = DCI::Index.new CFG['index_filename']
 q = z.parse_query queryString
 
 puts "parsed query: #{q.description}" if options[:verbose]

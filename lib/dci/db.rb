@@ -6,8 +6,9 @@ if DB_TYPE == :qdbm
 # 35s 22M
 require 'depot'
 class MarshalledDB < Depot
-	def initialize filename
-		super(filename, Depot::OWRITER | Depot::OCREAT)
+	def initialize filename, flags=Depot::OWRITER|Depot::OCREAT
+		super(filename, flags)
+		self.silent = true
 	end
 
   def []= k, v
