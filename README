@@ -19,8 +19,9 @@ Features:
 == SYNOPSYS:
 
   0. cp etc/config.yaml.template etc/config.yaml
-	1. vi etc/config.yaml
-  1. dci
+  1. vi etc/config.yaml
+  2. bin/proxy
+  3. bin/reindex
 
 == REQUIREMENTS:
 
