@@ -10,8 +10,6 @@ class Download
 end
 
 class Downloader
-	include Transfer
-
 	def initialize
 		@lock = Mutex.new
 		@queue = Queue.new
@@ -70,11 +68,13 @@ class Downloader
 			while offset < size
 				s, len = nil, nil
 				while !s
-					s, len = connect_to_peer usernames, filename, offset
+					s, len = ClientConnection.connect_to_peer usernames, filename, offset
 					sleep 10 unless s
 				end
-				n = transfer_chunk s, out, len
-				offset += n
+				ClientConnection.chunks s, len do |chunk|
+					offset += chunk.size
+					out.write chunk
+				end
 				log.warn "transfer aborted by peer at (#{offset}/#{size}), trying to resume" unless offset == size
 			end
 		rescue => e

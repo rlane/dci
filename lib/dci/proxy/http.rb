@@ -86,8 +86,6 @@ class BaseHttpServer
 end
 
 class HttpServer < BaseHttpServer
-	include Transfer
-
 	def parse_args params
 		Mongrel::HttpRequest.query_parse params['QUERY_STRING']
 	end
@@ -146,8 +144,8 @@ class HttpServer < BaseHttpServer
 	end
 
 	def stream out, filename, usernames, mimetype='application/octet-stream', cache_id=nil, offset=0, length=nil
-		stream_internal out, filename, usernames, cache_id, offset, length do |status|
-			case status
+		ClientConnection.download filename, usernames, cache_id, offset, length do |v|
+			case v
 			when :unavailable
 				write_status out, 404, 'all peers unavailable'
 			when :started
@@ -155,49 +153,12 @@ class HttpServer < BaseHttpServer
 				write_headers out, 'content-type' => mimetype
 				write_headers out, 'content-length' => length if length
 				write_separator out
+			when :peer_aborted
+			when :complete
+			when :failed
+			when String
+				out.write v
 			end
-		end
-	end
-
-	def stream_internal out, filename, usernames, cache_id, offset, length
-		delay = 1
-
-		cache_fn = CFG['cache_dir'] + '/' + cache_id if cache_id
-		log.info "cache filename: #{cache_fn}"
-		s, len = if cache_id && File.exists?(cache_fn)
-			[File.open(cache_fn, "r"), File.size(cache_fn)]
-		else
-			connect_to_peer usernames, filename, offset
-		end
-		return yield :unavailable unless s
-		length = len unless length
-
-		begin
-			yield :started
-			while offset < length
-				n = transfer_chunk s, out, (length-offset)
-				if n > 0
-					offset += n
-				else
-					log.warn "transfer aborted by peer at (#{offset}/#{length}), trying to failover"
-					yield :peer_aborted
-					while !s
-						raise 'max retries exceeded' if delay > 2**5
-						log.info "sleeping #{delay}"
-						sleep delay
-						delay *= 2
-						s, len = connect_to_peer usernames, filename, offset
-					end
-					delay = 1
-				end
-			end
-			log.info "transfer completed"
-			yield :complete
-		rescue => e
-			log.warn "transfer failed: #{e.class} #{e.message}"
-			yield :failed
-		ensure
-			s.close unless s.closed?
 		end
 	end
 
