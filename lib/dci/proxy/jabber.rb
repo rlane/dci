@@ -13,10 +13,11 @@ class JabberBot
 		@client.send(Jabber::Presence.new)
 		@roster = Jabber::Roster::Helper.new(@client)
 		@z = $index
+		@users = SavingHash.new { { :results => [], :offset => 0 } }
 		@options = {
 			:verbose => false,
-			:offset => 0,
-			:count => 20,
+			:num_results => 100,
+			:page_results => 10,
 			:max_locations => 5,
 		}
 		@result_hashes = {}
@@ -36,32 +37,42 @@ class JabberBot
 	end
 
 	def on_message m
-		return if m.body.nil?
-		log.info "got message from #{m.from}: #{m.body.inspect}"
-		cmd, arg = m.body.split(nil, 2)
-		cmd ||= ""
-		arg ||= ""
-		case cmd
-		when 'explain', 'e'
-			cmd_explain m.from, arg
-		when 'query', 'q'
-			cmd_query m.from, arg
-		when 'query_online', 'qo'
-			cmd_query_online m.from, arg
-		when 'link', 'l'
-			cmd_link m.from, arg
-		when 'info', 'i'
-			cmd_info m.from, arg
-		when 'download', 'd'
-			cmd_download m.from, arg
-		when 'download_remove', 'dr'
-			cmd_download_remove m.from, arg
-		when 'download_status', 'ds'
-			cmd_download_status m.from, arg
-		when 'help', 'h', '?'
-			cmd_help m.from, arg
-		else
-			tx m.from, "Invalid command #{cmd.inspect}; type 'help' if you need it."
+		begin
+			return if m.body.nil?
+			log.info "got message from #{m.from}: #{m.body.inspect}"
+			cmd, arg = m.body.split(nil, 2)
+			cmd ||= ""
+			arg ||= ""
+			case cmd
+			when 'explain', 'e'
+				cmd_explain m.from, arg
+			when 'query', 'q'
+				cmd_query m.from, arg
+			when 'query_online', 'qo'
+				cmd_query_online m.from, arg
+			when 'current_page', 'c'
+				cmd_current_page m.from
+			when 'next_page', 'n'
+				cmd_next_page m.from
+			when 'previous_page', 'p'
+				cmd_previous_page m.from
+			when 'link', 'l'
+				cmd_link m.from, arg
+			when 'info', 'i'
+				cmd_info m.from, arg
+			when 'download', 'd'
+				cmd_download m.from, arg
+			when 'download_remove', 'dr'
+				cmd_download_remove m.from, arg
+			when 'download_status', 'ds'
+				cmd_download_status m.from, arg
+			when 'help', 'h', '?'
+				cmd_help m.from, arg
+			else
+				tx m.from, "Invalid command #{cmd.inspect}; type 'help' if you need it."
+			end
+		rescue => e
+			log.error "Jabber bot got exception #{e.message} processing #{m.inspect}"
 		end
 	end
 
@@ -70,25 +81,37 @@ class JabberBot
 		tx from, q.description
 	end
 
+	def query from, q
+		ms, estimate = @z.query q, 0, @options[:num_results]
+		@users[from][:offset] = 0
+		@users[from][:results] = ms
+		@users[from][:estimate] = estimate
+		true
+	end
+
 	def cmd_query from, query_string
 		q = @z.parse_query query_string
-		ms, estimate = @z.query q, @options[:offset], @options[:count]
-		send_query_results from, ms, estimate
+		query from, q
+		send_results from
 	end
 
 	Q = Xapian::Query
 	def cmd_query_online from, query_string
 		q = @z.parse_query query_string
 		q = Q.new(Q::OP_FILTER, q, Q.new(Q::OP_OR, $hub.users.keys.map{|x| DCI::Index.mkterm(:username, x)}))
-		ms, estimate = @z.query q, @options[:offset], @options[:count]
-		send_query_results from, ms, estimate
+		query from, q
+		send_results from
 	end
 
-	def send_query_results from, ms, estimate
-		if ms.empty?
+	def send_results from
+		ms = @users[from][:results]
+		offset = @users[from][:offset]
+		estimate = @users[from][:estimate]
+		ms = ms[offset...(offset+@options[:page_results])]
+		if !ms || ms.empty?
 			tx from, "No results found."
 		else
-			tx from, "Results #{@options[:offset]+1} - #{@options[:offset]+ms.size} of #{estimate}:"
+			tx from, "Results #{offset+1} - #{offset+ms.size} of #{estimate}:"
 			ms.each do |m|
 				result_id = m[:rank].to_i + 1
 				@result_hashes["#{from}\000#{result_id}"] = m[:tth]
@@ -98,6 +121,30 @@ class JabberBot
 				filename = File.basename m[:locations].first[1]
 				tx from, "#{result_id}: #{filename} (#{users_str})"
 			end
+		end
+	end
+
+	def cmd_current_page from
+		send_results from
+	end
+
+	def cmd_next_page from
+		new_offset = @users[from][:offset] + @options[:page_results]
+		if new_offset < @users[from][:results].size
+			@users[from][:offset] = new_offset
+			send_results from
+		else
+			tx from, "No more results"
+		end
+	end
+
+	def cmd_previous_page from
+		new_offset = @users[from][:offset] - @options[:page_results]
+		if new_offset >= 0
+			@users[from][:offset] = new_offset
+			send_results from
+		else
+			tx from, "No more results"
 		end
 	end
 
