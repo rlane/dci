@@ -28,4 +28,18 @@ class YamlLogger
 		@f.puts h.to_yaml
 		@f.flush
 	end
+
+	def self.load_entries filename
+		[].tap { |r| File.open(filename) { |f| YAML.load_documents(f) { |x| r << x } } }
+	end
+
+	def load_entries
+		klass.load_entries @f.path
+	end
+end
+
+class SavingHash < Hash
+	def initialize *a
+		super(*a) { |h,k| h[k] = yield }
+	end
 end

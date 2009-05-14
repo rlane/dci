@@ -47,4 +47,43 @@ module DCI::Proxy::Console
 			puts "invalid type"
 		end
 	end
+
+	def searches
+		$search_logger.load_entries
+	end
+
+	def peers
+		$client_logger.load_entries
+	end
+
+	def ip_peers
+		SavingHash.new { [] }.tap { |h| peers.each { |x| h[x[:ip]] << x[:nick] } }
+	end
+
+	def peer_searches hide_tth=false
+		a = ip_peers
+		b = SavingHash.new { [] }
+		searches.each do |x|
+			nicks = a[x[:ip]]
+			nicks.each do |nick|
+				s = x[:pattern].gsub('$', ' ')
+				b[nick] << s if (!hide_tth || !s.start_with?('TTH:')) && (!block_given? || (yield nick, s))
+			end
+		end
+		b
+	end
+
+	def search_peers hide_tth=false
+		SavingHash.new { [] }.tap { |h| peer_searches(hide_tth).each { |k,vs| vs.each { |v| v.split.each { |w| r[w] << k } } } }
+	end
+
+	def reload
+		old_verbose = $VERBOSE
+		$VERBOSE = nil
+		fs = $".grep(/^dci\//)
+		fs.each { |f| $".delete f }
+		fs.each { |f| require f }
+		$VERBOSE = old_verbose
+		true
+	end
 end
