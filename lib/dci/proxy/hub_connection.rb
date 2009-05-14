@@ -43,6 +43,7 @@ class HubConnection < BaseConnection
 		when :quit
 			@users.delete m[:who]
 		when :myinfo
+			@users[m[:nick]] = m.filter_keys :email, :interest, :speed, :sharesize
 		when :active_search, :pasv_search
 			m[:time] = Time.now.to_i
 			$search_logger.log m

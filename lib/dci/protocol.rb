@@ -78,7 +78,7 @@ module DCI::ProtocolParser
        :interest => $2,
        :speed => $3,
        :email => $4,
-       :sharesize => $5 }
+       :sharesize => $5.to_i }
     when @@myinfo2
       {:type=>:myinfo,
        :nick=> $1,

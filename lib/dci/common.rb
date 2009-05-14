@@ -43,3 +43,9 @@ class SavingHash < Hash
 		super(*a) { |h,k| h[k] = yield }
 	end
 end
+
+class Hash
+	def filter_keys *ks
+		reject { |k,v| !ks.member? k }
+	end
+end
