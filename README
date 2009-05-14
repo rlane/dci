@@ -1,1 +1,56 @@
-Run proxy.rb
+dci - The Direct Connect Index
+    by Rich Lane <rlane@club.cc.cmu.edu>
+
+== DESCRIPTION:
+
+DCI is a HTTP/Jabber interface to the Direct Connect filesharing network. The
+included Jabber bot provides access to an index of all files available on the
+network, and the HTTP server allows the user to use any HTTP client to download
+them.
+
+== FEATURES:
+
+Features:
+
+- Use Xapian query syntax to search.
+
+- Files downloadable by any HTTP client.
+
+== SYNOPSYS:
+
+  0. cp etc/config.yaml.template etc/config.yaml
+	1. vi etc/config.yaml
+  1. dci
+
+== REQUIREMENTS:
+
+* mongrel
+* xapian
+* xmpp4r
+* qdbm
+* mime-types
+* libxml
+
+== INSTALL:
+
+* gem install dci
+
+== LICENSE:
+
+Copyright (c) 2009 Rich Lane.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.
+
