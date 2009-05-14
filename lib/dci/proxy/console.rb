@@ -26,7 +26,7 @@ module DCI::Proxy::Console
 		when /^[A-Z0-9]{39,39}$/ #TTH
 			$index.load_by_tth x
 		when /^[A-Za-z0-9\/\+]{6,6}$/ #encoded docid
-			$index.load(DCI::Index.decode_docid encoded_docid)
+			$index.load(DCI::Index.decode_docid x)
 		else
 			puts "invalid argument"
 		end

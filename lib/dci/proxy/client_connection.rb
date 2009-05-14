@@ -105,6 +105,7 @@ class ClientConnection < BaseConnection
 				if offset < length
 					log.warn "transfer aborted by peer at (#{offset}/#{length}), trying to failover"
 					yield :peer_aborted
+					s = nil
 					while !s
 						raise 'max retries exceeded' if delay > 2**5
 						log.info "sleeping #{delay}"
