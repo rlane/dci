@@ -82,7 +82,13 @@ module DCI::Proxy::Console
 		$VERBOSE = nil
 		fs = $".grep(/^dci\//)
 		fs.each { |f| $".delete f }
-		fs.each { |f| require f }
+		fs.each do |f|
+			begin
+				require f
+			rescue LoadError => e
+				raise unless e.message =~ /no such file to load/
+			end
+		end
 		$VERBOSE = old_verbose
 		true
 	end
