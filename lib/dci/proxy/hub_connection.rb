@@ -47,6 +47,8 @@ class HubConnection < BaseConnection
 		when :active_search, :pasv_search
 			m[:time] = Time.now.to_i
 			$search_logger.log m
+		when :connect_to_me
+			log.debug "ignoring CTM #{m.inspect}"
 		when :op_list
 		when :hubname
 		when :junk
