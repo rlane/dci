@@ -163,7 +163,7 @@ def index
 	data.close
 end
 
-#get_filelists
+get_filelists
 merge
 analyze
 index
