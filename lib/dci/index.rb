@@ -1,6 +1,7 @@
 require 'xapian'
 
 class DCI::Index
+	attr_reader :db
 
 	NORMAL_PREFIXES = {
 		:text => 'B',
@@ -77,5 +78,9 @@ class DCI::Index
 	def self.mkterm(type, value)
 		prefix = PREFIXES[type] or raise "Invalid term type #{type.inspect}"
 		"#{prefix}#{value}"
+	end
+
+	def reopen
+		@db.reopen
 	end
 end
