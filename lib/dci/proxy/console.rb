@@ -148,11 +148,39 @@ module DCI::Proxy::Console
 		true
 	end
 
+	class ItemEnumerator
+		include Enumerable
+		def each
+			(1..$index.db.doccount).each { |i| yield $index.load(i) }
+		end
+	end
+
+	def items
+		ItemEnumerator.new
+	end
+
 	def shared_size
-		(1..$index.db.doccount).inject(0) { |total,i| total + $index.load(i)[:size] }
+		items.inject(0) { |total,item| total + item[:size] }
+	end
+
+	def online_shared_size
+		items.inject(0) do |total,item|
+			usernames = item[:locations].map { |a,b| a }
+			any_online = usernames.any? { |x| $hub.users.member? x }
+			total + (any_online ? item[:size] : 0)
+		end
 	end
 
 	def shared_size_tb
 		shared_size / (2.0**40)
+	end
+
+	def online_shared_size_tb
+		online_shared_size / (2.0**40)
+	end
+
+	def reload_config
+		cfg = YAML.load_file CFG_FILENAME
+		CFG.merge! cfg
 	end
 end
