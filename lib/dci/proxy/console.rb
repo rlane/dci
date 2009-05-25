@@ -147,4 +147,12 @@ module DCI::Proxy::Console
 		end
 		true
 	end
+
+	def shared_size
+		(1..$index.db.doccount).inject(0) { |total,i| total + $index.load(i)[:size] }
+	end
+
+	def shared_size_tb
+		shared_size / (2.0**40)
+	end
 end
