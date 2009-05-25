@@ -18,3 +18,5 @@ jabber_password: 'password'
 dc_username: 'user'
 location: 'laptop'
 sharesize: 406232539641
+users:
+- test@example.com

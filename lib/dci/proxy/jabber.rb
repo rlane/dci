@@ -25,7 +25,12 @@ class JabberBot
 		@roster.add_subscription_request_callback(0, nil) { |item,pres| on_subscription_request item, pres }
 	end
 
+	def legal_user? u
+		CFG['users'].member? u.strip.to_s
+	end
+
 	def on_subscription_request item, pres
+		(log.warn "subscription request from illegal user #{pres.from}"; return) unless legal_user? pres.from
 		@roster.accept_subscription(pres.from)
 		log.info "accepted subscription request from #{pres.from}"
 	end
@@ -40,6 +45,7 @@ class JabberBot
 		begin
 			return if m.body.nil?
 			log.info "got message from #{m.from}: #{m.body.inspect}"
+			(log.warn "message from illegal user #{m.from}"; return) unless legal_user? m.from
 			cmd, arg = m.body.split(nil, 2)
 			cmd ||= ""
 			arg ||= ""
