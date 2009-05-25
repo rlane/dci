@@ -224,6 +224,8 @@ class JabberBot
 Commands:
   q[uery] query_string: Search for a file matching the given query string.
   query_online (qo): Same as query, but only show results that have an online source.
+  n[ext_page]: Show next page of search results
+  p[revious_page]: Show previous page of search results
   l[ink] result_id: Given a result id from the output of query, output an HTTP url to the file.
   i[nfo] result_id: Show more details about a search result.
   e[xplain] query_string: Display description of the parsed query string.
