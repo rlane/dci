@@ -3,6 +3,7 @@ hub_address: 'localhost'
 hub_port: 7314
 http_address: '192.168.1.10'
 http_port: 4350
+ctm_address: '192.168.1.10'
 ctm_port_start: 6000
 ctm_port_end: 6100
 ctm_timeout: 10
@@ -12,11 +13,18 @@ main_log_filename: 'var/log/main'
 chat_log_filename: 'var/log/chat'
 search_log_filename: 'var/log/search'
 client_log_filename: 'var/log/client'
+filelists_dir: 'var/filelists'
+data_filename: 'var/data'
+blacklist_filename: 'var/blacklist'
+analyzed_data_filename: 'var/data.analyzed'
 log_rotation: 'daily'
 jabber_username: 'foo@bar/baz'
 jabber_password: 'password'
 dc_username: 'user'
 location: 'laptop'
 sharesize: 406232539641
+filelist_expire: 86400
+index_optimize: false
+index_limit: 1000
 users:
 - test@example.com
