@@ -185,6 +185,7 @@ class JabberBot
 			return
 		end
 		m = ms[0]
+		tx from, "Size: #{m[:size]}"
 		#tx from, "Users: #{m[:locations].map{ |x,_| ($hub.users.member?(x) ? '+' : '') + x}.uniq * ', '}"
 		m[:locations][0...20].each do |username,path|
 			tx from, "#{$hub.users.member?(username) ? '+' : ' '}#{username}:#{path}"
