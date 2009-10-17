@@ -64,9 +64,8 @@ def each_filelist
 				xml = XML::Reader.io f
 				yield xml, username if xml
 			end
-		rescue => e
-			puts "exception: #{e.message}"
-			raise
+		rescue XML::Parser::ParseError
+			puts "malformed filelist #{filelist}"
 			#FileUtils.rm filelist
 		end
 	end
