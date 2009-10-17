@@ -50,63 +50,38 @@ def get_filelists
 	File.open(CFG['blacklist_filename'], "w") { |f| blacklist.each { |l| f.puts l } }
 end
 
-def process_filelists
+def each_filelist
 	filelists = Dir.glob(CFG['filelists_dir'] + "/*").take(CFG['index_limit'])
-
-	def process_file tth, username, path, size
-		{
-			:tth => tth,
-			:location => [username, path * '/'],
-			:size => size
-		}
-	end
-
-	def process_filelist data, xml, username
-		path = []
-		while (ret = xml.read; (ret == 1) || (ret == true))
-			name, node_type = xml.name, xml.node_type
-			if node_type == R::TYPE_ELEMENT && name == 'File'
-				path.push xml['Name']
-				data << process_file(xml['TTH'], username, path, xml['Size'].to_i)
-				path.pop
-			elsif node_type == R::TYPE_ELEMENT && name == 'Directory'
-				path.push xml['Name']
-			elsif node_type == R::TYPE_END_ELEMENT && name == 'Directory'
-				path.pop
-			end
-		end
-	end
-
-	data = []
-	i = 0
-	n = filelists.length
-	filelists.each do |filelist|
+	filelists.each_with_index do |filelist,i|
 		i += 1
 		fail 'bad filename' unless filelist =~ /^#{CFG['filelists_dir']}\/(.*).filelist.xml/
 		username = $1
 		begin
 			File.open(filelist, "r") do |f|
-				puts "(#{i}/#{n}) processing #{filelist}"
+				puts "(#{i}/#{filelists.size}) processing #{filelist}"
 				xml = XML::Reader.io f
-				next if xml.nil?
-				process_filelist data, xml, username
+				yield xml, username if xml
 			end
 		rescue => e
 			puts "exception: #{e.message}"
 			#FileUtils.rm filelist
 		end
 	end
-
-	data
 end
 
-def analyze raw_data
-	i = 0
-	n = raw_data.size
-	raw_data.map do |v|
-		i += 1
-		puts "analyzed #{i}/#{n}" if (i % 10000) == 0
-		run_heuristics v
+def each_file xml
+	path = []
+	while (ret = xml.read; (ret == 1) || (ret == true))
+		name, node_type = xml.name, xml.node_type
+		if node_type == R::TYPE_ELEMENT && name == 'File'
+			path.push xml['Name']
+			yield xml['TTH'], path, xml['Size'].to_i
+			path.pop
+		elsif node_type == R::TYPE_ELEMENT && name == 'Directory'
+			path.push xml['Name']
+		elsif node_type == R::TYPE_END_ELEMENT && name == 'Directory'
+			path.pop
+		end
 	end
 end
 
@@ -125,20 +100,12 @@ def index_doc db, tth, location, texts, terms, size, mimetype
 	db.add_document doc
 end
 
-def index data
-	db = Xapian::WritableDatabase.new(CFG['index_filename'], Xapian::DB_CREATE_OR_OVERWRITE)
-	n = data.size
-	i = 0
-	data.each do |v|
-		#puts "indexing #{tth}"
-		i += 1
-		index_doc db, v[:tth], v[:location], v[:texts], v[:terms], v[:size], v[:mimetype]
-		puts "indexed #{i}/#{n}" if (i % 10000) == 0
-	end
-end
-
 get_filelists
 
-raw_data = process_filelists
-data = analyze raw_data
-index data
+db = Xapian::WritableDatabase.new(CFG['index_filename'], Xapian::DB_CREATE_OR_OVERWRITE)
+each_filelist do |xml,username|
+	each_file(xml) do |tth,path,size|
+		v = run_heuristics :tth => tth, :location => [username, path * '/'], :size => size
+		index_doc db, v[:tth], v[:location], v[:texts], v[:terms], v[:size], v[:mimetype]
+	end
+end
