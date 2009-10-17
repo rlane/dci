@@ -49,6 +49,8 @@ class HubConnection < BaseConnection
 			$search_logger.log m
 		when :connect_to_me
 			log.debug "ignoring CTM #{m.inspect}"
+		when :revconnect
+			log.debug "ignoring RCTM #{m.inspect}"
 		when :op_list
 		when :hubname
 		when :junk
