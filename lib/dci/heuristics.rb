@@ -5,15 +5,14 @@ class HeuristicRunner
 
 	def terms; @v[:terms]; end
 	def texts; @v[:texts]; end
-	def locations; @v[:locations]; end
+	def location; @v[:location]; end
 	def mimetype; @v[:mimetype]; end
 
-	def initialize tth, v
-		@tth = tth
+	def initialize v
+		@tth = v[:tth]
 		@v = v
 		@v[:terms] ||= []
 		@v[:texts] ||= []
-		@v[:locations] ||= []
 		@v[:mimetype] ||= nil
 	end
 
@@ -40,14 +39,15 @@ end
 
 $heuristics = []
 
-def run_heuristics tth, v
-	runner = HeuristicRunner.new tth, v
+def run_heuristics v
+	runner = HeuristicRunner.new v
 	$heuristics.each do |name,b|
 		#puts "running #{name} on #{tth}"
 		runner.ie &b
 	end
 	v[:terms].uniq!
 	v[:texts].uniq!
+	v
 end
 
 def heuristic name, &b

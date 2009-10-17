@@ -50,23 +50,24 @@ def get_filelists
 	File.open(CFG['blacklist_filename'], "w") { |f| blacklist.each { |l| f.puts l } }
 end
 
-def merge
+def process_filelists
 	filelists = Dir.glob(CFG['filelists_dir'] + "/*").take(CFG['index_limit'])
 
 	def process_file tth, username, path, size
-		x = $index[tth] || { :locations => [], :size => nil }
-		x[:locations] << [username, path * '/']
-		x[:size] = size
-		$index[tth] = x
+		{
+			:tth => tth,
+			:location => [username, path * '/'],
+			:size => size
+		}
 	end
 
-	def process_filelist xml, username
+	def process_filelist data, xml, username
 		path = []
 		while (ret = xml.read; (ret == 1) || (ret == true))
 			name, node_type = xml.name, xml.node_type
 			if name == 'File' && node_type == R::TYPE_ELEMENT
 				path.push xml['Name']
-				process_file xml['TTH'], username, path, xml['Size'].to_i
+				data << process_file(xml['TTH'], username, path, xml['Size'].to_i)
 				path.pop
 			elsif name == 'Directory' && node_type == R::TYPE_ELEMENT
 				path.push xml['Name']
@@ -76,94 +77,68 @@ def merge
 		end
 	end
 
-	begin
-		$index = DCI::MarshalledDB.new CFG['data_filename'], Depot::OWRITER|Depot::OCREAT|Depot::OTRUNC
-
-		i = 0
-		n = filelists.length
-		filelists.each do |filelist|
-			i += 1
-			fail 'bad filename' unless filelist =~ /^#{CFG['filelists_dir']}\/(.*).filelist.xml/
-			username = $1
-			begin
-				File.open(filelist, "r") do |f|
-					puts "(#{i}/#{n}) processing #{filelist}"
-					xml = XML::Reader.io f
-					next if xml.nil?
-					process_filelist xml, username
-				end
-			rescue => e
-				puts "exception: #{e.message}"
-				FileUtils.rm filelist
+	data = []
+	i = 0
+	n = filelists.length
+	filelists.each do |filelist|
+		i += 1
+		fail 'bad filename' unless filelist =~ /^#{CFG['filelists_dir']}\/(.*).filelist.xml/
+		username = $1
+		begin
+			File.open(filelist, "r") do |f|
+				puts "(#{i}/#{n}) processing #{filelist}"
+				xml = XML::Reader.io f
+				next if xml.nil?
+				process_filelist data, xml, username
 			end
+		rescue => e
+			puts "exception: #{e.message}"
+			#FileUtils.rm filelist
 		end
+	end
 
-		if CFG['index_optimize']
-			puts "optimizing..."
-			$index.optimize
-		end
-	ensure
-		$index.close if $index
+	data
+end
+
+def analyze raw_data
+	i = 0
+	n = raw_data.size
+	raw_data.map do |v|
+		i += 1
+		puts "analyzed #{i}/#{n}" if (i % 10000) == 0
+		run_heuristics v
 	end
 end
 
-def analyze
-	in_index = out_index = nil
-	begin
-		in_index = DCI::MarshalledDB.new CFG['data_filename'], Depot::OREADER
-		out_index = DCI::MarshalledDB.new CFG['analyzed_data_filename'], Depot::OWRITER|Depot::OCREAT|Depot::OTRUNC
-
-		i = 0
-		n = in_index.size
-		in_index.each do |tth,v|
-			i += 1
-			run_heuristics tth, v
-			out_index[tth] = v
-			puts "analyzed #{i}/#{n}" if (i % 10000) == 0
-		end
-
-		if CFG['optimize']
-			puts "optimizing..."
-			out_index.optimize
-		end
-	ensure
-		in_index.close if in_index
-		out_index.close if out_index
-	end
+def index_doc db, tth, location, texts, terms, size, mimetype
+	doc = Xapian::Document.new
+	doc.add_term DCI::Index.mkterm(:tth, tth)
+	terms.each { |type,term| doc.add_term DCI::Index.mkterm(type,term) }
+	doc.add_term DCI::Index.mkterm(:username, location.first)
+	term_generator = Xapian::TermGenerator.new()
+	term_generator.stemmer = Xapian::Stem.new("english")
+	term_generator.document = doc
+	texts.each { |text| term_generator.index_text text, 1, DCI::Index::PREFIXES[:text] }
+	doc.add_value DCI::Index::SIZE_VALUENO, size.to_s
+	#puts doc.terms.map { |t| t.term }.join(' ')
+	doc.data = Marshal.dump({:tth => tth, :location => location, :size => size, :mimetype => mimetype})
+	db.add_document doc
 end
 
-def index
-	$db = Xapian::WritableDatabase.new(CFG['index_filename'], Xapian::DB_CREATE_OR_OVERWRITE)
-	$term_generator = Xapian::TermGenerator.new()
-	$term_generator.stemmer = Xapian::Stem.new("english")
-
-	def index tth, locations, texts, terms, size, mimetype
-		doc = Xapian::Document.new
-		doc.add_term DCI::Index.mkterm(:tth, tth)
-		terms.each { |type,term| doc.add_term DCI::Index.mkterm(type,term) }
-		usernames = locations.map { |x,_| x }.uniq
-		usernames.each { |x| doc.add_term DCI::Index.mkterm(:username, x) }
-		$term_generator.document = doc
-		texts.each { |text| $term_generator.index_text text, 1, DCI::Index::PREFIXES[:text] }
-		doc.add_value DCI::Index::SIZE_VALUENO, size.to_s
-		#puts doc.terms.map { |t| t.term }.join(' ')
-		doc.data = Marshal.dump({:tth => tth, :locations => locations, :size => size, :mimetype => mimetype})
-		$db.add_document doc
-	end
-
-	data = DCI::MarshalledDB.new CFG['analyzed_data_filename'], Depot::OREADER
+def index data
+	db = Xapian::WritableDatabase.new(CFG['index_filename'], Xapian::DB_CREATE_OR_OVERWRITE)
 	n = data.size
 	i = 0
-	data.each do |tth,v|
+	data.each do |v|
 		#puts "indexing #{tth}"
 		i += 1
-		index tth, v[:locations], v[:texts], v[:terms], v[:size], v[:mimetype]
+		index_doc db, v[:tth], v[:location], v[:texts], v[:terms], v[:size], v[:mimetype]
 		puts "indexed #{i}/#{n}" if (i % 10000) == 0
 	end
-	data.close
 end
 
 get_filelists
-merge
-analyze
-index
+
+raw_data = process_filelists
+data = analyze raw_data
+index data

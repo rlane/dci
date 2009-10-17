@@ -16,7 +16,8 @@ class DCI::Index
 
 	PREFIXES = NORMAL_PREFIXES.merge BOOLEAN_PREFIXES
 
-	SIZE_VALUENO = 0
+	TTH_VALUENO = 0
+	SIZE_VALUENO = 1
 
 	QP = Xapian::QueryParser
 	QUERY_PARSER_FLAGS = 
@@ -45,10 +46,7 @@ class DCI::Index
 	end
 
 	def load docid
-		doc = @db.document(docid) rescue (return nil)
-		m = Marshal.load(doc.data)
-		m[:docid] = docid
-		m
+		make_result docid
 	end
 
 	def load_by_tth tth
@@ -62,12 +60,12 @@ class DCI::Index
 
 	def query q, offset, count
 		enquire = Xapian::Enquire.new(@db)
+		enquire.collapse_key = TTH_VALUENO
 		enquire.query = q
 		matchset = enquire.mset(offset, count)
 		results = []
 		matchset.matches.each do |m|
-			result = Marshal.load(m.document.data)
-			result[:docid] = m.docid
+			result = make_result m.docid
 			result[:rank] = m.rank
 			result[:percent] = m.percent
 			results << result
@@ -82,5 +80,21 @@ class DCI::Index
 
 	def reopen
 		@db.reopen
+	end
+
+#private
+
+	def make_result docid
+		hit_doc = @db.document(docid)
+		hit_data = Marshal.load hit_doc.data
+		tth = hit_data[:tth]
+		doc_datas = @db.postlist(self.class.mkterm(:tth,tth)).map { |x| @db.document x.docid }.map { |doc| Marshal.load doc.data }
+		{
+			:docid => docid,
+			:tth => tth,
+			:locations => doc_datas.map { |data| data[:location] },
+			:size => hit_data[:size],
+			:mimetype => hit_data[:mimetype],
+		}
 	end
 end
