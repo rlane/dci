@@ -10,6 +10,7 @@ include LibXML
 R = XML::Reader
 
 $profile = false
+$only_updated = true
 
 CFG_FILENAME = 'etc/config.yaml'
 fail "#{CFG_FILENAME} missing" unless File.exists? CFG_FILENAME
@@ -29,6 +30,7 @@ end
 def get_filelists
 	blacklist = (File.open(CFG['blacklist_filename']).readlines rescue []).map { |l| l.chomp }
 	usernames = get_raw(BASE_URL + "/users").split
+	updated = []
 
 	usernames.each do |username|
 		filename = CFG['filelists_dir'] + "/#{username.gsub '/', '_'}.filelist.xml"
@@ -42,6 +44,7 @@ def get_filelists
 			data = get_raw(BASE_URL + "/filelist?username=#{CGI.escape username}")
 			fail 'empty file' if data.empty?
 			File.open(filename, "w") { |f| f.puts data }
+			updated << filename
 		rescue Exception => e
 			puts "download failed: #{e.message}"
 			blacklist << username
@@ -50,10 +53,10 @@ def get_filelists
 	end
 
 	File.open(CFG['blacklist_filename'], "w") { |f| blacklist.each { |l| f.puts l } }
+	updated
 end
 
-def each_filelist
-	filelists = Dir.glob(CFG['filelists_dir'] + "/*").take(CFG['index_limit'])
+def each_filelist filelists
 	filelists.each_with_index do |filelist,i|
 		i += 1
 		fail 'bad filename' unless filelist =~ /^#{CFG['filelists_dir']}\/(.*).filelist.xml/
@@ -103,15 +106,17 @@ def index_doc db, tth, username, path, texts, terms, size, mimetype
 	db.add_document doc
 end
 
-get_filelists
+updated = get_filelists
+filelists = $only_updated ? updated : Dir.glob(CFG['filelists_dir'] + "/*").take(CFG['index_limit'])
 
 if $profile
 	require 'ruby-prof'
 	RubyProf.start
 end
 
-db = Xapian::WritableDatabase.new(CFG['index_filename'], Xapian::DB_CREATE_OR_OVERWRITE)
-each_filelist do |xml,username|
+db = Xapian::WritableDatabase.new(CFG['index_filename'], Xapian::DB_CREATE_OR_OPEN)
+each_filelist(filelists) do |xml,username|
+	db.delete_document(DCI::Index.mkterm(:username, username))
 	each_file(xml) do |tth,path,size|
 		v = run_heuristics tth, username, (path * '/'), size
 		index_doc db, tth, username, (path * '/'), v[:texts], v[:terms], size, v[:mimetype]
