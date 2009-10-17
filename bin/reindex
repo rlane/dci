@@ -65,13 +65,13 @@ def process_filelists
 		path = []
 		while (ret = xml.read; (ret == 1) || (ret == true))
 			name, node_type = xml.name, xml.node_type
-			if name == 'File' && node_type == R::TYPE_ELEMENT
+			if node_type == R::TYPE_ELEMENT && name == 'File'
 				path.push xml['Name']
 				data << process_file(xml['TTH'], username, path, xml['Size'].to_i)
 				path.pop
-			elsif name == 'Directory' && node_type == R::TYPE_ELEMENT
+			elsif node_type == R::TYPE_ELEMENT && name == 'Directory'
 				path.push xml['Name']
-			elsif name == 'Directory' && node_type == R::TYPE_END_ELEMENT
+			elsif node_type == R::TYPE_END_ELEMENT && name == 'Directory'
 				path.pop
 			end
 		end
