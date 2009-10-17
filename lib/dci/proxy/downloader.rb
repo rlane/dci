@@ -59,6 +59,7 @@ class Downloader
 		data = $index.load_by_tth(tth) or fail 'invalid TTH'
 		filename = "TTH/#{tth}"
 		offset = 0
+		failures = 0
 		size = data[:size]
 		usernames = data[:locations].map{ |x,_| x }.uniq
 		cache_id = 'tth:' + tth
@@ -69,7 +70,9 @@ class Downloader
 				s, len = nil, nil
 				while !s
 					s, len = ClientConnection.connect_to_peer usernames, filename, offset
-					sleep 10 unless s
+					sleep(10*failures) unless s
+					failures += 1
+					raise "failure count exceeded" if failures > 10
 				end
 				ClientConnection.chunks s, len do |chunk|
 					offset += chunk.size
