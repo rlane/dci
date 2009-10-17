@@ -1,7 +1,6 @@
 require 'mime/types'
 
 heuristic :extension do
-	username,path = *location
 	term! :extension, $1.downcase if path =~ /\.([\w]{1,5})$/
 end
 
@@ -24,20 +23,16 @@ heuristic :type_from_extension do
 end
 
 heuristic :text_from_path do
-	username,path = *location
 	path_elements = path.split '/'
 	path_elements.each { |x| text! x }
 	text! username
 end
 
 heuristic :type_from_path do
-	username,path = *location
-	path = path.downcase
-	term! :type, 'movie' if path.index 'movie' and term? :type, 'video'
-	term! :type, 'tv' if path.index 'tv' and term? :type, 'video'
+	term! :type, 'movie' if path.downcase.index 'movie' and term? :type, 'video'
+	term! :type, 'tv' if path.downcase.index 'tv' and term? :type, 'video'
 end
 
 heuristic :mimetype do
-	username,path = *location
 	mimetype! MIME::Types.type_for(path).map{ |x| x.content_type }.uniq.first
 end

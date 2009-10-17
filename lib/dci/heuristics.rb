@@ -1,16 +1,18 @@
 $heuristic_verbose = false
 
 class HeuristicRunner
-	attr_reader :tth
+	attr_reader :tth, :username, :path, :v	
 
 	def terms; @v[:terms]; end
 	def texts; @v[:texts]; end
-	def location; @v[:location]; end
 	def mimetype; @v[:mimetype]; end
 
-	def initialize v
-		@tth = v[:tth]
-		@v = v
+	def initialize tth, username, path, size
+		@tth = tth
+		@username = username
+		@path = path
+		@size = size
+		@v = {}
 		@v[:terms] ||= []
 		@v[:texts] ||= []
 		@v[:mimetype] ||= nil
@@ -39,12 +41,13 @@ end
 
 $heuristics = []
 
-def run_heuristics v
-	runner = HeuristicRunner.new v
+def run_heuristics tth, username, path, size
+	runner = HeuristicRunner.new tth, username, path, size
 	$heuristics.each do |name,b|
 		#puts "running #{name} on #{tth}"
 		runner.ie &b
 	end
+	v = runner.v
 	v[:terms].uniq!
 	v[:texts].uniq!
 	v

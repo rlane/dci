@@ -66,6 +66,7 @@ def each_filelist
 			end
 		rescue => e
 			puts "exception: #{e.message}"
+			raise
 			#FileUtils.rm filelist
 		end
 	end
@@ -87,18 +88,19 @@ def each_file xml
 	end
 end
 
-def index_doc db, tth, location, texts, terms, size, mimetype
+def index_doc db, tth, username, path, texts, terms, size, mimetype
 	doc = Xapian::Document.new
 	doc.add_term DCI::Index.mkterm(:tth, tth)
 	terms.each { |type,term| doc.add_term DCI::Index.mkterm(type,term) }
-	doc.add_term DCI::Index.mkterm(:username, location.first)
+	doc.add_term DCI::Index.mkterm(:username, username)
 	term_generator = Xapian::TermGenerator.new()
 	term_generator.stemmer = Xapian::Stem.new("english")
 	term_generator.document = doc
 	texts.each { |text| term_generator.index_text text, 1, DCI::Index::PREFIXES[:text] }
+	doc.add_value DCI::Index::TTH_VALUENO, tth
 	doc.add_value DCI::Index::SIZE_VALUENO, size.to_s
 	#puts doc.terms.map { |t| t.term }.join(' ')
-	doc.data = Marshal.dump({:tth => tth, :location => location, :size => size, :mimetype => mimetype})
+	doc.data = Marshal.dump({:tth => tth, :location => [username, path], :size => size, :mimetype => mimetype})
 	db.add_document doc
 end
 
@@ -112,8 +114,8 @@ end
 db = Xapian::WritableDatabase.new(CFG['index_filename'], Xapian::DB_CREATE_OR_OVERWRITE)
 each_filelist do |xml,username|
 	each_file(xml) do |tth,path,size|
-		v = run_heuristics :tth => tth, :location => [username, path * '/'], :size => size
-		index_doc db, v[:tth], v[:location], v[:texts], v[:terms], v[:size], v[:mimetype]
+		v = run_heuristics tth, username, (path * '/'), size
+		index_doc db, tth, username, (path * '/'), v[:texts], v[:terms], size, v[:mimetype]
 	end
 end
 
