@@ -48,6 +48,7 @@ module DCI::ProtocolParser
     when ''
       {:type => :junk}
     else
+      log.warn "mystery: #{text.inspect}" 
       {:type => :mystery,
        :text => text}
     end
