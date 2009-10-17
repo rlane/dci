@@ -155,7 +155,7 @@ class JabberBot
 	end
 
 	def cmd_link from, result_id
-		tth = @result_hashes["#{from}\000#{result_id}"]
+		tth = get_tth from, result_id
 		if !tth
 			tx from, "invalid result id"
 			return
@@ -173,7 +173,7 @@ class JabberBot
 	end
 
 	def cmd_info from, result_id
-		tth = @result_hashes["#{from}\000#{result_id}"]
+		tth = get_tth from, result_id
 		if !tth
 			tx from, "invalid result id"
 			return
@@ -195,7 +195,7 @@ class JabberBot
 	end
 
 	def cmd_download from, result_id
-		tth = @result_hashes["#{from}\000#{result_id}"]
+		tth = get_tth from, result_id
 		if !tth
 			tx from, "invalid result id"
 			return
@@ -206,7 +206,7 @@ class JabberBot
 	end
 
 	def cmd_download_remove from, result_id
-		tth = @result_hashes["#{from}\000#{result_id}"]
+		tth = get_tth from, result_id
 		if !tth
 			tx from, "invalid result id"
 			return
@@ -238,6 +238,19 @@ Commands:
   e[xplain] query_string: Display description of the parsed query string.
 EOS
 		tx from, helpmsg
+	end
+
+	def get_tth from, x
+		case x
+		when /^(\d+)$/ #result id
+			@result_hashes["#{from}\000#{$1}"]
+		when /^([A-Z0-9]{39,39})$/ #TTH
+			$1
+		when /^=([A-Za-z0-9\/\+]{6,6})$/ #encoded docid
+			$index.load(DCI::Index.decode_docid $1)[:tth]
+		else
+			nil
+		end
 	end
 end
 
