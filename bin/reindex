@@ -9,6 +9,8 @@ require 'xapian'
 include LibXML
 R = XML::Reader
 
+$profile = false
+
 CFG_FILENAME = 'etc/config.yaml'
 fail "#{CFG_FILENAME} missing" unless File.exists? CFG_FILENAME
 CFG = YAML.load_file CFG_FILENAME
@@ -102,10 +104,21 @@ end
 
 get_filelists
 
+if $profile
+	require 'ruby-prof'
+	RubyProf.start
+end
+
 db = Xapian::WritableDatabase.new(CFG['index_filename'], Xapian::DB_CREATE_OR_OVERWRITE)
 each_filelist do |xml,username|
 	each_file(xml) do |tth,path,size|
 		v = run_heuristics :tth => tth, :location => [username, path * '/'], :size => size
 		index_doc db, v[:tth], v[:location], v[:texts], v[:terms], v[:size], v[:mimetype]
 	end
+end
+
+if $profile
+	result = RubyProf.stop
+	printer = RubyProf::CallTreePrinter.new(result)
+	File.open('profile.kcg', 'w') { |io| printer.print(io, 0) }
 end
